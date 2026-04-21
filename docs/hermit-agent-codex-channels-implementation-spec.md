@@ -75,6 +75,9 @@ Suggested entry points:
 
 ## 4. Install integration
 
+Read together with:
+- `docs/hermit-agent-codex-channels-install-ux-spec.md`
+
 ### Desired UX
 ```bash
 hermit-agent install-codex
@@ -83,10 +86,11 @@ hermit-agent install-codex
 ### Steps inside that flow
 1. check Codex CLI/app-server presence
 2. check `@cafitac/codex-channels`
-3. bootstrap plugin wrapper / local marketplace
-4. verify `.mcp.json` / plugin discovery
-5. verify local runtime health
-6. write a compact success report
+3. verify the compiled CLI exists before bootstrap
+4. bootstrap plugin wrapper / local marketplace with a workspace-local default
+5. verify `.mcp.json` / plugin discovery
+6. verify local runtime health
+7. write a compact success report with exact next steps
 
 ---
 
@@ -112,6 +116,7 @@ These two flows are enough for the first integration proof.
 
 ### install smoke
 - bootstrap installs/configures codex-channels path
+- build prerequisite is satisfied before bootstrap
 - local plugin wrapper is discoverable
 - local runtime starts
 
@@ -122,22 +127,59 @@ These two flows are enough for the first integration proof.
 ### diagnostics smoke
 - missing runtime
 - missing plugin bootstrap
+- missing build artifact before bootstrap
 - bridge unavailable
 
 ---
 
-## 7. Suggested execution order
+## 7. First PR checklist
+
+### A. Adapter contract
+- [ ] define the Hermit → codex-channels mapping for MVP interaction kinds
+- [ ] define codex-channels → Hermit response mapping for MVP response actions
+- [ ] preserve correlation fields required to resume the correct Hermit waiting task
+- [ ] document lifecycle handling for resolved / cancelled / errored / cleared states
+
+### B. Local roundtrip
+- [ ] publish one approval request from Hermit through the adapter
+- [ ] receive and apply the approval decision back into Hermit resume flow
+- [ ] publish one free-text question through the adapter
+- [ ] receive and apply the free-text reply back into Hermit resume flow
+
+### C. Install-codex happy path
+- [ ] make `hermit-agent install-codex` the single recommended entrypoint
+- [ ] default to workspace-local bootstrap for MVP
+- [ ] verify the compiled CLI before plugin bootstrap
+- [ ] verify plugin / MCP discoverability after bootstrap
+- [ ] run a compact smoke check before printing success
+- [ ] print short next-step guidance after success
+
+### D. Failure-mode guidance
+- [ ] missing Codex guidance
+- [ ] missing codex-channels guidance
+- [ ] missing build artifact guidance
+- [ ] missing bootstrap / marketplace guidance
+- [ ] bridge unavailable guidance
+
+### E. Docs
+- [ ] add a compact install section to Hermit docs
+- [ ] document the single happy path before advanced options
+- [ ] keep remote channels clearly out of MVP docs
+
+---
+
+## 8. Suggested execution order
 
 1. Create adapter contract module
 2. Wire local-only interaction publish from Hermit
 3. Wire response back into reply queue
 4. Add install/bootstrap integration
-5. Add smoke tests
-6. Add docs
+5. Add smoke tests and failure-mode guidance
+6. Add compact operator docs
 
 ---
 
-## 8. What to avoid
+## 9. What to avoid
 - reimplementing codex-channels logic inside Hermit
 - requiring Slack/Telegram/Discord for MVP
 - changing Hermit core semantics when adapter translation is enough

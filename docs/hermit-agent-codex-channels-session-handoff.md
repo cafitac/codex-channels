@@ -51,8 +51,9 @@
 Read these in order:
 1. `docs/hermit-agent-codex-channels-prd.md`
 2. `docs/hermit-agent-codex-channels-ralplan.md`
-3. `docs/hermit-agent-codex-channels-implementation-spec.md`
-4. this handoff file
+3. `docs/hermit-agent-codex-channels-install-ux-spec.md`
+4. `docs/hermit-agent-codex-channels-implementation-spec.md`
+5. this handoff file
 
 Then start in the `hermit-agent` repository, not this one.
 
@@ -61,8 +62,8 @@ Then start in the `hermit-agent` repository, not this one.
 ## Desired first PR in hermit-agent
 
 - add a thin `codex-channels` adapter
-- make `install-codex` configure codex-channels automatically
+- make `install-codex` configure codex-channels automatically with a workspace-local happy path
 - implement one approval roundtrip and one free-text roundtrip
-- add smoke tests
+- add smoke tests and failure-mode guidance
 
 That should be the first concrete integration milestone.
