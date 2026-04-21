@@ -74,6 +74,7 @@ The plugin is not the core product; it is a Codex-facing convenience layer for d
 ```bash
 npm install
 npm run build
+npm run plugin:bootstrap
 node packages/cli/dist/index.js serve --port 4317 --state-file .codex-channels/state.json
 ```
 
@@ -135,6 +136,7 @@ npm run preflight:ci
 - [Security notes](./docs/security.md)
 - [Roadmap](./docs/roadmap.md)
 - [Plugin installation](./docs/plugin-install.md)
+- [Codex install quickstart](./docs/codex-install-quickstart.md)
 - [Publishing](./docs/publishing.md)
 - [Release checklist](./docs/release-checklist.md)
 - [v0.1.0 release notes](./docs/releases/v0.1.0.md)

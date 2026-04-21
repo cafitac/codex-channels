@@ -15,7 +15,9 @@
     "pack:preview": "node ./scripts/pack-workspaces.mjs",
     "publish:dry-run": "node ./scripts/publish-dry-run-workspaces.mjs",
     "preflight:release": "node ./scripts/preflight-release.mjs",
-    "preflight:ci": "npm run check && npm run build && npm test"
+    "preflight:ci": "npm run check && npm run build && npm test",
+    "plugin:bootstrap": "node ./scripts/bootstrap-codex-plugin.mjs --scope workspace",
+    "plugin:bootstrap:user": "node ./scripts/bootstrap-codex-plugin.mjs --scope user"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",

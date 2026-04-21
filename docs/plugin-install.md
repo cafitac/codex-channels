@@ -4,6 +4,15 @@
 
 ## What the plugin wrapper includes
 
+## Fastest path
+
+```bash
+npm install
+npm run build
+npm run plugin:bootstrap
+```
+
+
 - `.codex-plugin/plugin.json` — plugin manifest
 - `.mcp.json` — local MCP wiring for `bridge-stdio`
 - `skills/codex-channels/SKILL.md` — Codex chat-facing guidance

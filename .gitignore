@@ -8,3 +8,5 @@ coverage/
 
 .codex-channels/
 *.tgz
+.agents/
+tests/
