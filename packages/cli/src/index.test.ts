@@ -199,3 +199,139 @@ test("submit publishes one interaction and returns the resolved response", async
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("doctor reports runtime reachability and next steps", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-doctor-"));
+  const stateFile = join(dir, "state.json");
+  const port = await getFreePort();
+
+  const child = spawn(process.execPath, [cliEntry, "doctor", "--port", String(port), "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  const payload = JSON.parse(stdout.trim());
+  assert.equal(payload.runtime.reachable, false);
+  assert.equal(payload.interactionCount, 0);
+  assert.match(payload.next[0], /demo/);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("inspect prints persisted interactions without a running server", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-inspect-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({
+    interactions: [{
+      id: "inspect-1",
+      kind: "approval_request",
+      source: { type: "system", name: "test" },
+      payload: { message: "Approve deploy?" },
+      createdAt: new Date().toISOString(),
+      status: "delivered",
+    }],
+  }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "inspect", "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.match(stdout, /inspect-1/);
+  assert.match(stdout, /approval_request/);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("reply resolves an interaction on the running local runtime", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-reply-"));
+  const stateFile = join(dir, "state.json");
+  const port = await getFreePort();
+
+  const demo = spawn(process.execPath, [cliEntry, "demo", "--port", String(port), "--state-file", stateFile, "--timeout-ms", "10000"], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let demoStdout = "";
+  demo.stdout.on("data", (chunk) => {
+    demoStdout += chunk.toString();
+  });
+
+  try {
+    await waitFor(async () => {
+      const interactionsResponse = await fetch(`http://127.0.0.1:${port}/interactions`);
+      const interactionsJson = await interactionsResponse.json() as { interactions: Array<{ id: string }> };
+      return interactionsJson.interactions.some((item) => item.id.startsWith("demo-"));
+    }, 2000, () => `reply interaction never appeared: ${demoStdout}`);
+
+    const interactionsResponse = await fetch(`http://127.0.0.1:${port}/interactions`);
+    const interactionsJson = await interactionsResponse.json() as { interactions: Array<{ id: string }> };
+    const interactionId = interactionsJson.interactions.find((item) => item.id.startsWith("demo-"))?.id;
+    assert.ok(interactionId);
+
+    const reply = spawn(process.execPath, [cliEntry, "reply", "--port", String(port), "--id", interactionId!, "--text", "staging"], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    const replyExit = await new Promise<number | null>((resolve) => reply.once("exit", resolve));
+    assert.equal(replyExit, 0);
+
+    await waitFor(() => demoStdout.includes('"ok": true') || demoStdout.includes('"ok":true'), 2000, () => `demo did not resolve via reply: ${demoStdout}`);
+  } finally {
+    demo.kill();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("demo publishes an interaction and returns the resolved response", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-demo-"));
+  const stateFile = join(dir, "state.json");
+  const port = await getFreePort();
+
+  const child = spawn(process.execPath, [cliEntry, "demo", "--port", String(port), "--state-file", stateFile, "--timeout-ms", "10000"], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  try {
+    await waitFor(async () => {
+      const interactionsResponse = await fetch(`http://127.0.0.1:${port}/interactions`);
+      const interactionsJson = await interactionsResponse.json() as { interactions: Array<{ id: string }> };
+      return interactionsJson.interactions.some((item) => item.id.startsWith("demo-"));
+    }, 2000, () => `demo interaction never appeared: ${stdout}`);
+
+    const interactionsResponse = await fetch(`http://127.0.0.1:${port}/interactions`);
+    const interactionsJson = await interactionsResponse.json() as { interactions: Array<{ id: string }> };
+    const interactionId = interactionsJson.interactions.find((item) => item.id.startsWith("demo-"))?.id;
+    assert.ok(interactionId);
+
+    const reply = spawn(process.execPath, [cliEntry, "reply", "--port", String(port), "--id", interactionId!, "--text", "staging"], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const replyExit = await new Promise<number | null>((resolve) => reply.once("exit", resolve));
+    assert.equal(replyExit, 0);
+
+    await waitFor(() => stdout.includes('"ok": true') || stdout.includes('"ok":true'), 2000, () => `demo did not resolve: ${stdout}`);
+    assert.match(stdout, /codex-channels demo is running/);
+    assert.match(stdout, /interaction:/);
+  } finally {
+    child.kill();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
