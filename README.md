@@ -18,23 +18,27 @@ Most current Codex integrations treat Codex as a worker, an MCP server, or a rem
 
 ```bash
 npm install -g @cafitac/codex-channels
+codex-channels doctor
+codex-channels demo
+```
+
+### Inspect and reply to interactions
+
+```bash
+codex-channels inspect
+codex-channels reply --id <interaction-id> --text staging
+```
+
+### Lower-level runtime / bridge commands
+
+```bash
 codex-channels serve --port 4317 --state-file .codex-channels/state.json
-```
-
-### One-machine local workflow
-
-```bash
 codex-channels status --port 4317
-codex-channels bridge-stdio --port 4317 --state-file .codex-channels/state.json
-```
-
-### Publish one interaction and wait for a reply
-
-```bash
 codex-channels submit \
   --port 4317 \
   --state-file .codex-channels/state.json \
   --interaction-file ./interaction.json
+codex-channels bridge-stdio --port 4317 --state-file .codex-channels/state.json
 ```
 
 ## Why this exists
@@ -79,9 +83,20 @@ docs/
 - **npm first**: main distribution path for local runtime usage and external consumers
 - **Codex plugin wrapper**: optional convenience layer for Codex discovery via `.codex-plugin/` + `.mcp.json`
 
+## If you are just trying it
+
+- `doctor` tells you whether the local runtime is already reachable and what command to try next
+- `demo` starts a sample interaction and waits for you to answer it from another terminal
+- `inspect` shows what interactions currently exist in the local state file
+- `reply` sends an answer back to a running local runtime
+
 ## CLI
 
 ```bash
+codex-channels doctor
+codex-channels demo
+codex-channels inspect
+codex-channels reply --id <interaction-id> --text staging
 npx @cafitac/codex-channels serve --port 4317 --state-file .codex-channels/state.json
 npx @cafitac/codex-channels status --port 4317
 npx @cafitac/codex-channels submit --port 4317 --state-file .codex-channels/state.json --interaction-file ./interaction.json
@@ -100,6 +115,11 @@ npx @cafitac/codex-channels plugin-bootstrap --scope workspace
 - A backend delivers those requests to a local UI or a remote channel.
 - The first remote backend scaffolds target Slack, Discord, and Telegram.
 - The user's decision is returned to the original request source and marked resolved.
+
+## Integration model
+
+- **Use HTTP or the CLI for third-party integrations.** If you are writing a Python, Rust, Java, or other custom runtime, the simplest path is the local HTTP surface or CLI commands such as `submit`, `inspect`, and `reply`.
+- **Use JSON-RPC only for the Codex bridge layer.** `bridge-stdio` and `bridge-spawn` exist for Codex app-server style integration and are not the recommended default for general custom tools.
 
 ## Local release preflight
 

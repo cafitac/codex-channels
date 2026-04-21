@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile, lstat, symlink, unlink } from "node:fs/prom
 import { dirname, relative, resolve } from "node:path";
 import { homedir } from "node:os";
 import { LocalHttpChannelServer, LocalMemoryBackend } from "@cafitac/codex-channels-backend-local";
-import { InteractionRuntime, createInteraction } from "@cafitac/codex-channels-core";
+import { Interaction, InteractionRuntime, InteractionStatus, createInteraction } from "@cafitac/codex-channels-core";
 import { JsonFileInteractionPersistence } from "@cafitac/codex-channels-persistence-file";
 import { CodexInteractionBridge, CodexJsonRpcLoop, SpawnedCodexAppServerLoop } from "@cafitac/codex-channels-transport-codex-app-server";
 
@@ -78,6 +78,160 @@ async function runStatus(argv: string[]) {
     throw new Error(`failed to query local channel runtime: ${response.status}`);
   }
   console.log(JSON.stringify(await response.json(), null, 2));
+}
+
+async function loadStateInteractions(argv: string[]) {
+  const persistence = createPersistence(argv);
+  try {
+    const raw = await readFile(persistence.filePath, "utf8");
+    const parsed = JSON.parse(raw) as { interactions?: Interaction[] };
+    return { filePath: persistence.filePath, interactions: parsed.interactions ?? [] };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return { filePath: persistence.filePath, interactions: [] };
+    }
+    throw error;
+  }
+}
+
+async function runInspect(argv: string[]) {
+  const id = readFlag(argv, "--id", "");
+  const statusFilter = readFlag(argv, "--status", "");
+  const { filePath, interactions } = await loadStateInteractions(argv);
+  const filtered = interactions.filter((item) => {
+    if (id && item.id !== id) return false;
+    if (statusFilter && item.status !== statusFilter as InteractionStatus) return false;
+    return true;
+  });
+
+  if (hasFlag(argv, "--json")) {
+    console.log(JSON.stringify({ stateFile: filePath, count: filtered.length, interactions: filtered }, null, 2));
+    return;
+  }
+
+  console.log(`state file: ${filePath}`);
+  if (filtered.length === 0) {
+    console.log("no interactions found");
+    return;
+  }
+
+  for (const interaction of filtered) {
+    const summary = interaction.payload.message.replace(/\s+/g, " ").slice(0, 80);
+    console.log(`- ${interaction.id}`);
+    console.log(`  kind: ${interaction.kind}`);
+    console.log(`  status: ${interaction.status}`);
+    console.log(`  source: ${interaction.source.name}`);
+    console.log(`  message: ${summary}`);
+  }
+}
+
+async function runReply(argv: string[]) {
+  const interactionId = readFlag(argv, "--id", "");
+  if (!interactionId) {
+    throw new Error("reply requires --id <interaction-id>");
+  }
+
+  const host = readFlag(argv, "--host", process.env.CODEX_CHANNELS_HOST ?? "127.0.0.1");
+  const port = Number(readFlag(argv, "--port", process.env.CODEX_CHANNELS_PORT ?? "4317"));
+  const text = readFlag(argv, "--text", "");
+  const reason = readFlag(argv, "--reason", "");
+  const action = hasFlag(argv, "--accept")
+    ? "accept"
+    : hasFlag(argv, "--decline")
+      ? "decline"
+      : hasFlag(argv, "--cancel")
+        ? "cancel"
+        : "text";
+
+  const url = action === "cancel"
+    ? `http://${host}:${port}/interactions/${interactionId}/cancel`
+    : `http://${host}:${port}/interactions/${interactionId}/respond`;
+
+  const body = action === "cancel"
+    ? { reason: reason || text || "cancelled via codex-channels reply" }
+    : { action, values: text ? [text] : [] };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`failed to reply to interaction: ${response.status}`);
+  }
+  console.log(JSON.stringify(await response.json(), null, 2));
+}
+
+async function runDoctor(argv: string[]) {
+  const { filePath, interactions } = await loadStateInteractions(argv);
+  const host = readFlag(argv, "--host", process.env.CODEX_CHANNELS_HOST ?? "127.0.0.1");
+  const port = Number(readFlag(argv, "--port", process.env.CODEX_CHANNELS_PORT ?? "4317"));
+  let runtimeHealth: Record<string, unknown> | null = null;
+  let runtimeReachable = false;
+  try {
+    const response = await fetch(`http://${host}:${port}/health`);
+    if (response.ok) {
+      runtimeReachable = true;
+      runtimeHealth = await response.json() as Record<string, unknown>;
+    }
+  } catch {
+    runtimeReachable = false;
+  }
+
+  const payload = {
+    ok: true,
+    nodeVersion: process.version,
+    stateFile: filePath,
+    interactionCount: interactions.length,
+    runtime: {
+      reachable: runtimeReachable,
+      host,
+      port,
+      health: runtimeHealth,
+    },
+    next: runtimeReachable
+      ? [
+          "codex-channels inspect",
+          "codex-channels demo",
+        ]
+      : [
+          "codex-channels demo",
+          "codex-channels serve --port 4317 --state-file .codex-channels/state.json",
+        ],
+  };
+
+  console.log(JSON.stringify(payload, null, 2));
+}
+
+async function runDemo(argv: string[]) {
+  const timeoutMs = Number(readFlag(argv, "--timeout-ms", process.env.CODEX_CHANNELS_TIMEOUT_MS ?? "300000"));
+  const { runtime, persistence, server, info } = await startLocalRuntime(argv);
+  const interaction = createInteraction({
+    id: `demo-${Date.now()}`,
+    kind: "user_input_request",
+    source: { type: "system", name: "codex-channels-demo" },
+    payload: {
+      message: "Which environment should we deploy to?",
+      options: [
+        { label: "staging", value: "staging" },
+        { label: "prod", value: "prod" },
+      ],
+    },
+    policy: { allowFreeText: true, timeoutSec: Math.floor(timeoutMs / 1000) },
+  });
+
+  console.log(`codex-channels demo is running at ${info.url}`);
+  console.log(`interaction: ${interaction.id}`);
+  console.log("Try in another terminal:");
+  console.log(`  codex-channels inspect --state-file ${persistence.filePath}`);
+  console.log(`  codex-channels reply --id ${interaction.id} --text staging --port ${info.port}`);
+
+  try {
+    const response = await runtime.publishAndWait(interaction, timeoutMs);
+    console.log(JSON.stringify({ ok: true, interactionId: interaction.id, response }, null, 2));
+  } finally {
+    await server.stop();
+  }
 }
 
 async function runBridgeStdio(argv: string[]) {
@@ -259,6 +413,26 @@ async function main(argv: string[]) {
     return;
   }
 
+  if (command === "doctor") {
+    await runDoctor(argv);
+    return;
+  }
+
+  if (command === "inspect") {
+    await runInspect(argv);
+    return;
+  }
+
+  if (command === "reply") {
+    await runReply(argv);
+    return;
+  }
+
+  if (command === "demo") {
+    await runDemo(argv);
+    return;
+  }
+
   if (command === "bridge-stdio") {
     await runBridgeStdio(argv);
     return;
@@ -279,7 +453,7 @@ async function main(argv: string[]) {
     return;
   }
 
-  console.log(`codex-channels\n\nCommands:\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Write a Codex marketplace entry for the plugin wrapper\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --timeout-ms <ms>          Bridge interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: workspace | user\n  --plugin-path <path>       plugin-bootstrap source path\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --quiet                    Suppress bridge startup metadata on stderr`);
+  console.log(`codex-channels\n\nCommands:\n  doctor            Check the local runtime and show the next useful commands\n  demo              Start a demo interaction and wait for a reply\n  inspect           Read the local interaction state file and list current interactions\n  reply             Reply to one interaction on the running local runtime\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Write a Codex marketplace entry for the plugin wrapper\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --id <interaction-id>      Target interaction for inspect/reply\n  --status <status>          Filter inspect output by interaction status\n  --text <value>             Reply value for reply/submit flows\n  --accept                   Send an accept reply\n  --decline                  Send a decline reply\n  --cancel                   Cancel the interaction\n  --timeout-ms <ms>          Bridge or demo interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: workspace | user\n  --plugin-path <path>       plugin-bootstrap source path\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --json                     Emit JSON output for inspect\n  --quiet                    Suppress bridge startup metadata on stderr`);
 }
 
 main(process.argv).catch((error) => {

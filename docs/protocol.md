@@ -36,6 +36,11 @@ A response should include:
 
 ## Mapping philosophy
 
+### Recommended transport split
+
+- **HTTP / CLI for general custom integrations** — if you are wiring a Python, Rust, Java, or other external tool into `codex-channels`, prefer the local HTTP runtime or the CLI commands that sit on top of it.
+- **JSON-RPC for the Codex bridge boundary** — JSON-RPC matters when `codex-channels` is translating Codex app-server requests, but it should not be the default requirement for every third-party integration.
+
 ### Codex-native request classes
 
 The Codex app-server protocol already contains primitives for:
