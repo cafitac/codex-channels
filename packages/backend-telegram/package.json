@@ -1,6 +1,6 @@
 {
   "name": "@cafitac/codex-channels-backend-telegram",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,7 +11,7 @@
     }
   },
   "dependencies": {
-    "@cafitac/codex-channels-core": "0.1.0"
+    "@cafitac/codex-channels-core": "0.1.1"
   },
   "license": "MIT",
   "repository": {
