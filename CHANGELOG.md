@@ -4,6 +4,11 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.5 - 2026-04-21
+
+- Publish from each workspace directory in GitHub Actions so the release tarballs keep compiled `dist/` outputs.
+- Preserve the clean-run packaging fix, stale `tsbuildinfo` cleanup, and CLI `submit` flow in the released package set.
+
 ## 0.1.4 - 2026-04-21
 
 - Fix workspace build packaging so clean builds regenerate `dist/` outputs before pack/publish flows.

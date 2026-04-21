@@ -1,6 +1,6 @@
 {
   "name": "@cafitac/codex-channels-transport-codex-app-server",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./src/index.ts",
@@ -11,7 +11,7 @@
     }
   },
   "dependencies": {
-    "@cafitac/codex-channels-core": "0.1.4"
+    "@cafitac/codex-channels-core": "0.1.5"
   },
   "scripts": {
     "prepack": "tsc -p tsconfig.json"
