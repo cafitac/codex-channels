@@ -201,7 +201,7 @@ export function mapServerRequestResolved(message: { method: string; params: Reco
 }
 
 export function extractInteractionChoices(interaction: Interaction): string[] {
-  return interaction.payload.options?.map((item) => item.value) ?? [];
+  return interaction.payload.options?.map((item: { value: string }) => item.value) ?? [];
 }
 
 export function normalizeResponseValues(input: unknown): string[] {

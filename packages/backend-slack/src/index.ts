@@ -17,7 +17,7 @@ function renderInteraction(interaction: Interaction): string {
   ];
   const options = interaction.payload.options ?? [];
   if (options.length) {
-    lines.push("", "*options:*", ...options.map((option) => `• ${option.label} => ${option.value}`));
+    lines.push("", "*options:*", ...options.map((option: { label: string; value: string }) => `• ${option.label} => ${option.value}`));
   }
   lines.push("", `interaction_id: ${interaction.id}`);
   return lines.join("\n");

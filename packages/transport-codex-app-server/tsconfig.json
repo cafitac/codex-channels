@@ -8,5 +8,6 @@
     { "path": "../core" },
     { "path": "../backend-local" }
   ],
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }
