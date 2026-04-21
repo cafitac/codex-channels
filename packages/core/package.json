@@ -3,10 +3,10 @@
   "version": "0.1.2",
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./src/index.ts",
       "default": "./dist/index.js"
     }
   },
@@ -22,8 +22,7 @@
   "files": [
     "dist/index.js",
     "dist/index.js.map",
-    "dist/index.d.ts",
-    "dist/index.d.ts.map",
+    "src/index.ts",
     "README.md",
     "LICENSE"
   ],

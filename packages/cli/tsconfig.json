@@ -2,22 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
-    "baseUrl": "../..",
-    "paths": {
-      "@cafitac/codex-channels-core": [
-        "packages/core/dist/index.d.ts"
-      ],
-      "@cafitac/codex-channels-backend-local": [
-        "packages/backend-local/dist/index.d.ts"
-      ],
-      "@cafitac/codex-channels-persistence-file": [
-        "packages/persistence-file/dist/index.d.ts"
-      ],
-      "@cafitac/codex-channels-transport-codex-app-server": [
-        "packages/transport-codex-app-server/dist/index.d.ts"
-      ]
-    }
+    "rootDir": "src"
   },
   "references": [
     {
