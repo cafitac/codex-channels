@@ -116,6 +116,7 @@ This project lives near the Codex app-server, Codex plugins, and channel backend
 - [Plugin installation](./docs/plugin-install.md)
 - [Publishing](./docs/publishing.md)
 - [Release checklist](./docs/release-checklist.md)
+- [v0.1.0 release notes](./docs/releases/v0.1.0.md)
 
 ## License
 
