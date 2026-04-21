@@ -12,12 +12,43 @@ Most current Codex integrations treat Codex as a worker, an MCP server, or a rem
 - **Current best use case**: give an external runtime or bridge a reusable way to ask the human something while Codex stays the main agent
 - **Status**: early, but the local runtime / CLI / Codex bridge path are all usable now
 
+## Most important use case
+
+The most important way to think about `codex-channels` is:
+
+> **use it from inside Codex, not just as a standalone local server**
+
+The standalone CLI is useful for trying the runtime, debugging it, or
+integrating a third-party tool. But the higher-value path is:
+
+1. install `codex-channels`
+2. register the local plugin / MCP wrapper with Codex
+3. let Codex surface approvals, user input, or other interaction flows
+   through the `codex-channels` runtime
+
+If you only remember one thing, remember that `codex-channels` is meant
+to make **Codex-side human interaction** easier.
+
 ## Quickstart
 
 ### Install from npm
 
 ```bash
 npm install -g @cafitac/codex-channels
+codex-channels plugin-bootstrap --scope workspace
+```
+
+Then restart Codex so it can rediscover the plugin wrapper and MCP
+surface for this workspace.
+
+### Try it inside Codex first
+
+After bootstrap, Codex should be able to discover the `codex-channels`
+plugin/skill surface for the current workspace.
+
+If you want to confirm the runtime manually first, run:
+
+```bash
 codex-channels doctor
 codex-channels demo
 ```
