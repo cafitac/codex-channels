@@ -14,7 +14,7 @@
     "skipLibCheck": true,
     "composite": true,
     "types": ["node"],
-    "baseUrl": "../..",
+    "baseUrl": ".",
     "paths": {
       "@cafitac/codex-channels-core": ["packages/core/src/index.ts"],
       "@cafitac/codex-channels-backend-local": ["packages/backend-local/src/index.ts"],
