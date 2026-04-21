@@ -2,6 +2,14 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
+const buildResult = spawnSync('npm', ['run', 'build'], {
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+});
+if ((buildResult.status ?? 1) !== 0) {
+  process.exit(buildResult.status ?? 1);
+}
+
 const packagesDir = 'packages';
 const workspaces = readdirSync(packagesDir, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())

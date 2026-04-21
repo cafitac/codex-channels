@@ -130,6 +130,24 @@ async function runBridgeSpawn(argv: string[]) {
   await server.stop();
 }
 
+async function runSubmit(argv: string[]) {
+  const timeoutMs = Number(readFlag(argv, "--timeout-ms", process.env.CODEX_CHANNELS_TIMEOUT_MS ?? "300000"));
+  const interactionFile = readFlag(argv, "--interaction-file", "");
+  if (!interactionFile) {
+    throw new Error("submit requires --interaction-file <path>");
+  }
+
+  const raw = await readFile(interactionFile, "utf8");
+  const interaction = JSON.parse(raw);
+  const { runtime, server } = await startLocalRuntime(argv);
+  try {
+    const response = await runtime.publishAndWait(interaction, timeoutMs);
+    console.log(JSON.stringify({ ok: true, response }));
+  } finally {
+    await server.stop();
+  }
+}
+
 type MarketplacePlugin = {
   name: string;
   source: { source: "local"; path: string };
@@ -256,7 +274,12 @@ async function main(argv: string[]) {
     return;
   }
 
-  console.log(`codex-channels\n\nCommands:\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Write a Codex marketplace entry for the plugin wrapper\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --timeout-ms <ms>          Bridge interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: workspace | user\n  --plugin-path <path>       plugin-bootstrap source path\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --quiet                    Suppress bridge startup metadata on stderr`);
+  if (command === "submit") {
+    await runSubmit(argv);
+    return;
+  }
+
+  console.log(`codex-channels\n\nCommands:\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Write a Codex marketplace entry for the plugin wrapper\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --timeout-ms <ms>          Bridge interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: workspace | user\n  --plugin-path <path>       plugin-bootstrap source path\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --quiet                    Suppress bridge startup metadata on stderr`);
 }
 
 main(process.argv).catch((error) => {

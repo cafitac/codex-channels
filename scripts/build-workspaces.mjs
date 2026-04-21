@@ -13,7 +13,7 @@ const workspaces = [
 
 for (const workspace of workspaces) {
   console.log(`\n=== tsc -p ${workspace}/tsconfig.json ===`);
-  const result = spawnSync('npx', ['tsc', '-b', `${workspace}/tsconfig.json`], {
+  const result = spawnSync('npx', ['tsc', '-p', `${workspace}/tsconfig.json`], {
     stdio: 'inherit',
     shell: process.platform === 'win32',
   });
