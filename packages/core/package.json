@@ -1,6 +1,6 @@
 {
   "name": "@cafitac/codex-channels-core",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./src/index.ts",

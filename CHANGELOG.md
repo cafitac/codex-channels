@@ -4,6 +4,11 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.7 - 2026-04-21
+
+- Publish packed tarballs as explicit file paths in GitHub Actions so npm does not misread them as package specs.
+- Preserve the clean-run packaging fix, stale `tsbuildinfo` cleanup, and CLI `submit` flow in the released package set.
+
 ## 0.1.6 - 2026-04-21
 
 - Publish the exact packed tarballs from GitHub Actions so the npm artifacts match the verified `pack:preview` outputs.
