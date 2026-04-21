@@ -8,7 +8,7 @@
   ],
   "packageManager": "npm@10.9.3",
   "scripts": {
-    "build": "tsc -b tsconfig.build.json",
+    "build": "node ./scripts/build-workspaces.mjs",
     "check": "tsc -p tsconfig.check.json --pretty false",
     "clean": "find packages -name dist -type d -prune -exec rm -rf {} +",
     "test": "node ./scripts/run-node-tests.mjs",
