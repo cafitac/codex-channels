@@ -13,7 +13,9 @@
     "clean": "find packages -name dist -type d -prune -exec rm -rf {} +",
     "test": "node ./scripts/run-node-tests.mjs",
     "pack:preview": "node ./scripts/pack-workspaces.mjs",
-    "publish:dry-run": "node ./scripts/publish-dry-run-workspaces.mjs"
+    "publish:dry-run": "node ./scripts/publish-dry-run-workspaces.mjs",
+    "preflight:release": "node ./scripts/preflight-release.mjs",
+    "preflight:ci": "npm run check && npm run build && npm test"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",

@@ -5,6 +5,7 @@ Use this checklist before publishing `codex-channels` packages or tagging a GitH
 ## Repository readiness
 
 - [ ] `npm install`
+- [ ] `npm run preflight:release`
 - [ ] `npm run check`
 - [ ] `npm run build`
 - [ ] `npm test`

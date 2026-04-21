@@ -19,11 +19,7 @@ Recommended order:
 ## Local verification before publish
 
 ```bash
-npm install
-npm run check
-npm run build
-npm test
-npm run pack:preview
+npm run preflight:release
 ```
 
 ## NPM access strategy

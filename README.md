@@ -107,6 +107,27 @@ codex-channels plugin-bootstrap --scope workspace
 
 This project lives near the Codex app-server, Codex plugins, and channel backends such as Slack/Discord/Telegram. For that ecosystem, a TypeScript/npm-first monorepo keeps packaging, plugin wiring, CLI distribution, and backend integrations aligned.
 
+## Local release preflight
+
+Before pushing, tagging, or triggering the release workflow, run:
+
+```bash
+npm run preflight:release
+```
+
+This mirrors the release-critical local checks:
+- `npm run check`
+- `npm run build`
+- `npm test`
+- `npm run pack:preview`
+- `npm run publish:dry-run`
+
+For a faster developer loop that skips the pack/publish simulation, use:
+
+```bash
+npm run preflight:ci
+```
+
 ## Documentation
 
 - [Architecture](./docs/architecture.md)

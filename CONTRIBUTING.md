@@ -23,6 +23,7 @@ npm install
 npm run check
 npm run build
 npm test
+npm run preflight:release
 ```
 
 ## Contribution guidelines
