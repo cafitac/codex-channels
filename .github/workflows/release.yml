@@ -22,12 +22,21 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: npm run pack:preview
-      - name: Publish packages from workspace directories
+      - name: Pack publishable workspaces
+        run: |
+          rm -rf release-tarballs
+          mkdir -p release-tarballs
+          for workspace in             packages/core             packages/persistence-file             packages/backend-local             packages/backend-slack             packages/backend-discord             packages/backend-telegram             packages/transport-codex-app-server             packages/cli
+          do
+            echo "Packing $workspace"
+            (cd "$workspace" && npm pack --pack-destination ../../release-tarballs)
+          done
+      - name: Publish packed tarballs
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          for workspace in             packages/core             packages/persistence-file             packages/backend-local             packages/backend-slack             packages/backend-discord             packages/backend-telegram             packages/transport-codex-app-server             packages/cli
+          for tarball in release-tarballs/*.tgz
           do
-            echo "Publishing $workspace"
-            (cd "$workspace" && npm publish --access public --provenance)
+            echo "Publishing $tarball"
+            npm publish "$tarball" --access public --provenance
           done
