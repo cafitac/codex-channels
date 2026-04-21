@@ -80,11 +80,11 @@ node packages/cli/dist/index.js serve --port 4317 --state-file .codex-channels/s
 ## CLI
 
 ```bash
-codex-channels serve --port 4317 --state-file .codex-channels/state.json
-codex-channels status --port 4317
-codex-channels bridge-stdio --port 4317 --state-file .codex-channels/state.json
-codex-channels bridge-spawn --port 4317 --state-file .codex-channels/state.json
-codex-channels plugin-bootstrap --scope workspace
+npx @cafitac/codex-channels serve --port 4317 --state-file .codex-channels/state.json
+npx @cafitac/codex-channels status --port 4317
+npx @cafitac/codex-channels bridge-stdio --port 4317 --state-file .codex-channels/state.json
+npx @cafitac/codex-channels bridge-spawn --port 4317 --state-file .codex-channels/state.json
+npx @cafitac/codex-channels plugin-bootstrap --scope workspace
 ```
 
 ## Planned usage model
@@ -140,6 +140,7 @@ npm run preflight:ci
 - [v0.1.0 release notes](./docs/releases/v0.1.0.md)
 - [v0.1.1 release notes](./docs/releases/v0.1.1.md)
 - [v0.1.2 release notes](./docs/releases/v0.1.2.md)
+- [v0.1.3 release notes](./docs/releases/v0.1.3.md)
 
 ## License
 

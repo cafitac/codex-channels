@@ -2,6 +2,11 @@
 
 All notable changes to this project should be documented in this file.
 
+## 0.1.3 - 2026-04-21
+
+- Rename the published CLI package to `@cafitac/codex-channels`
+- Cut a fresh patch release after npm rejected the unscoped package name
+
 ## 0.1.2 - 2026-04-21
 
 - Add local preflight commands for CI and release verification

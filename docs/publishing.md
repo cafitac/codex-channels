@@ -24,7 +24,7 @@ npm run preflight:release
 
 ## NPM access strategy
 
-- `codex-channels` should publish as a public package.
+- `@cafitac/codex-channels` should publish as a public package.
 - scoped workspace packages under `@cafitac/*` should publish with public access as well.
 
 ## Release strategy
