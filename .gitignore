@@ -10,3 +10,4 @@ coverage/
 *.tgz
 .agents/
 tests/
+plugins/

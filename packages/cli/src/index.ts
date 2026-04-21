@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, readFile, writeFile, lstat, symlink, unlink } from "node:fs/promises";
+import { dirname, relative, resolve } from "node:path";
 import { homedir } from "node:os";
 import { LocalHttpChannelServer, LocalMemoryBackend } from "@cafitac/codex-channels-backend-local";
 import { InteractionRuntime, createInteraction } from "@cafitac/codex-channels-core";
@@ -159,9 +159,37 @@ async function readMarketplace(path: string, fallbackName: string, fallbackDispl
   }
 }
 
+async function ensurePluginSourcePath(scope: string, requestedPluginPath: string | null): Promise<string> {
+  if (requestedPluginPath) return requestedPluginPath;
+  if (scope === "workspace") {
+    const linkPath = resolve("plugins/codex-channels");
+    await mkdir(dirname(linkPath), { recursive: true });
+    try {
+      const stat = await lstat(linkPath);
+      if (stat.isSymbolicLink()) {
+        await unlink(linkPath);
+      }
+    } catch {}
+    await symlink(resolve('.'), linkPath, 'dir');
+    return './plugins/codex-channels';
+  }
+  const userPluginsDir = resolve(homedir(), 'plugins');
+  const linkPath = resolve(userPluginsDir, 'codex-channels');
+  await mkdir(dirname(linkPath), { recursive: true });
+  try {
+    const stat = await lstat(linkPath);
+    if (stat.isSymbolicLink()) {
+      await unlink(linkPath);
+    }
+  } catch {}
+  await symlink(resolve('.'), linkPath, 'dir');
+  return './plugins/codex-channels';
+}
+
 async function runPluginBootstrap(argv: string[]) {
   const scope = readFlag(argv, "--scope", "workspace");
-  const pluginPath = readFlag(argv, "--plugin-path", scope === "workspace" ? "." : "./plugins/codex-channels");
+  const requestedPluginPath = argv.includes('--plugin-path') ? readFlag(argv, '--plugin-path', '') : null;
+  const pluginPath = await ensurePluginSourcePath(scope, requestedPluginPath);
   const marketplaceFile = readFlag(
     argv,
     "--marketplace-file",
