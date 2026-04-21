@@ -10,6 +10,7 @@ Most current Codex integrations treat Codex as a worker, an MCP server, or a rem
 - **Default path**: local-first, single-machine, no SaaS required
 - **Main surfaces**: npm packages + CLI, with an optional Codex plugin wrapper
 - **Current best use case**: give an external runtime or bridge a reusable way to ask the human something while Codex stays the main agent
+- **Status**: early, but the local runtime / CLI / Codex bridge path are all usable now
 
 ## Quickstart
 
@@ -47,20 +48,6 @@ Codex already exposes low-level interaction primitives through the app-server pr
 
 That runtime is the purpose of `codex-channels`.
 
-## Status
-
-Early scaffold / specification-first repository.
-
-Current repository contents:
-- TypeScript/npm monorepo skeleton
-- local-first core runtime primitives
-- local HTTP channel server
-- file-backed interaction persistence
-- Codex app-server transport mapping package
-- first remote backend scaffolds: Slack, Discord, and Telegram
-- CLI scaffold (`codex-channels serve`, `codex-channels status`, `codex-channels bridge-stdio`, `codex-channels bridge-spawn`)
-- architecture, protocol, security, and roadmap docs
-
 ## Design goals
 
 - **Codex-first**: Codex remains the main agent.
@@ -89,17 +76,8 @@ docs/
 
 ## Install paths
 
-### npm first (recommended)
-
-The primary distribution target is npm. This is the preferred path for:
-- local runtime usage
-- external adapters or consumers
-- CI or daemon-style deployment
-
-### Codex plugin wrapper (optional)
-
-This repository also includes a lightweight Codex plugin wrapper under `.codex-plugin/`.
-The plugin is not the core product; it is a Codex-facing convenience layer for discovery and chat-first guidance. The wrapper now includes local MCP wiring through `.mcp.json`, while the npm packages remain the primary product surface.
+- **npm first**: main distribution path for local runtime usage and external consumers
+- **Codex plugin wrapper**: optional convenience layer for Codex discovery via `.codex-plugin/` + `.mcp.json`
 
 ## CLI
 
@@ -123,16 +101,6 @@ npx @cafitac/codex-channels plugin-bootstrap --scope workspace
 - The first remote backend scaffolds target Slack, Discord, and Telegram.
 - The user's decision is returned to the original request source and marked resolved.
 
-## Packaging strategy
-
-- **Primary distribution**: npm packages
-- **Optional convenience layer**: Codex plugin wrapper later
-- **Consumer model**: external runtimes (for example, future adapters) depend on the core packages rather than reimplementing the Codex interaction bridge
-
-## Why npm first?
-
-This project lives near the Codex app-server, Codex plugins, and channel backends such as Slack/Discord/Telegram. For that ecosystem, a TypeScript/npm-first monorepo keeps packaging, plugin wiring, CLI distribution, and backend integrations aligned.
-
 ## Local release preflight
 
 Before pushing, tagging, or triggering the release workflow, run:
@@ -154,29 +122,13 @@ For a faster developer loop that skips the pack/publish simulation, use:
 npm run preflight:ci
 ```
 
-## Documentation
+## Essential links
 
 - [Architecture](./docs/architecture.md)
 - [Protocol model](./docs/protocol.md)
-- [Security notes](./docs/security.md)
-- [Roadmap](./docs/roadmap.md)
-- [Plugin installation](./docs/plugin-install.md)
 - [Codex install quickstart](./docs/codex-install-quickstart.md)
 - [Publishing](./docs/publishing.md)
 - [Release checklist](./docs/release-checklist.md)
-- [v0.1.0 release notes](./docs/releases/v0.1.0.md)
-- [v0.1.1 release notes](./docs/releases/v0.1.1.md)
-- [v0.1.2 release notes](./docs/releases/v0.1.2.md)
-- [v0.1.3 release notes](./docs/releases/v0.1.3.md)
-- [v0.1.4 release notes](./docs/releases/v0.1.4.md)
-- [v0.1.5 release notes](./docs/releases/v0.1.5.md)
-- [v0.1.6 release notes](./docs/releases/v0.1.6.md)
-- [v0.1.7 release notes](./docs/releases/v0.1.7.md)
-- [Hermit-Agent integration PRD](./docs/hermit-agent-codex-channels-prd.md)
-- [Hermit-Agent integration RALPLAN](./docs/hermit-agent-codex-channels-ralplan.md)
-- [Hermit-Agent install UX spec](./docs/hermit-agent-codex-channels-install-ux-spec.md)
-- [Hermit-Agent implementation spec](./docs/hermit-agent-codex-channels-implementation-spec.md)
-- [Hermit-Agent session handoff](./docs/hermit-agent-codex-channels-session-handoff.md)
 
 ## License
 
