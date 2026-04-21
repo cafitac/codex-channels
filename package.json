@@ -10,7 +10,7 @@
   "scripts": {
     "build": "node ./scripts/build-workspaces.mjs",
     "check": "tsc -p tsconfig.check.json --pretty false",
-    "clean": "find packages -name dist -type d -prune -exec rm -rf {} +",
+    "clean": "find packages -name dist -type d -prune -exec rm -rf {} + && find packages -name '*.tsbuildinfo' -type f -delete",
     "test": "node ./scripts/run-node-tests.mjs",
     "pack:preview": "node ./scripts/pack-workspaces.mjs",
     "publish:dry-run": "node ./scripts/publish-dry-run-workspaces.mjs",

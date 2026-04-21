@@ -144,3 +144,58 @@ test("plugin-bootstrap writes a workspace marketplace entry", async () => {
 
   await rm(dir, { recursive: true, force: true });
 });
+
+test("submit publishes one interaction and returns the resolved response", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-submit-"));
+  const stateFile = join(dir, "state.json");
+  const interactionFile = join(dir, "interaction.json");
+  const port = await getFreePort();
+
+  await writeFile(interactionFile, JSON.stringify({
+    id: "submit-1",
+    kind: "user_input_request",
+    source: { type: "system", name: "test" },
+    payload: { message: "Which env?" },
+    createdAt: new Date().toISOString(),
+    status: "pending",
+  }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "submit", "--port", String(port), "--state-file", stateFile, "--interaction-file", interactionFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  try {
+    await waitFor(async () => {
+      const interactionsResponse = await fetch(`http://127.0.0.1:${port}/interactions`);
+      const interactionsJson = await interactionsResponse.json() as { interactions: Array<{ id: string }> };
+      return interactionsJson.interactions.some((item) => item.id === "submit-1");
+    }, 2000, () => "submit interaction never appeared");
+
+    const respondResponse = await fetch(`http://127.0.0.1:${port}/interactions/submit-1/respond`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "text", values: ["staging"] }),
+    });
+    assert.equal(respondResponse.ok, true);
+
+    await waitFor(() => stdout.includes('"ok":true'), 2000, () => `submit response timeout: ${stdout}`);
+    const payload = JSON.parse(stdout.trim());
+    assert.deepEqual(payload, {
+      ok: true,
+      response: {
+        interactionId: "submit-1",
+        action: "text",
+        values: ["staging"],
+        respondedAt: payload.response.respondedAt,
+      },
+    });
+  } finally {
+    child.kill();
+    await rm(dir, { recursive: true, force: true });
+  }
+});

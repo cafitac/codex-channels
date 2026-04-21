@@ -2,6 +2,11 @@
 
 All notable changes to this project should be documented in this file.
 
+## Unreleased
+
+- Fix workspace build packaging so clean builds regenerate `dist/` outputs before pack/publish flows.
+- Stop tracking stale `tsconfig.tsbuildinfo` artifacts that could make release tarballs miss compiled files.
+
 ## 0.1.3 - 2026-04-21
 
 - Rename the published CLI package to `@cafitac/codex-channels`
