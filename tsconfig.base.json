@@ -16,13 +16,13 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@cafitac/codex-channels-core": ["packages/core/src/index.ts"],
-      "@cafitac/codex-channels-backend-local": ["packages/backend-local/src/index.ts"],
-      "@cafitac/codex-channels-backend-slack": ["packages/backend-slack/src/index.ts"],
-      "@cafitac/codex-channels-backend-discord": ["packages/backend-discord/src/index.ts"],
-      "@cafitac/codex-channels-backend-telegram": ["packages/backend-telegram/src/index.ts"],
-      "@cafitac/codex-channels-persistence-file": ["packages/persistence-file/src/index.ts"],
-      "@cafitac/codex-channels-transport-codex-app-server": ["packages/transport-codex-app-server/src/index.ts"]
+      "@cafitac/codex-channels-core": ["packages/core/dist/index.d.ts"],
+      "@cafitac/codex-channels-backend-local": ["packages/backend-local/dist/index.d.ts"],
+      "@cafitac/codex-channels-backend-slack": ["packages/backend-slack/dist/index.d.ts"],
+      "@cafitac/codex-channels-backend-discord": ["packages/backend-discord/dist/index.d.ts"],
+      "@cafitac/codex-channels-backend-telegram": ["packages/backend-telegram/dist/index.d.ts"],
+      "@cafitac/codex-channels-persistence-file": ["packages/persistence-file/dist/index.d.ts"],
+      "@cafitac/codex-channels-transport-codex-app-server": ["packages/transport-codex-app-server/dist/index.d.ts"]
     }
   }
 }
