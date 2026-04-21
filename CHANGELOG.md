@@ -2,6 +2,11 @@
 
 All notable changes to this project should be documented in this file.
 
+## 0.1.2 - 2026-04-21
+
+- Add local preflight commands for CI and release verification
+- Cut a fresh release candidate from the latest green main branch after the v0.1.1 tag
+
 ## 0.1.1 - 2026-04-21
 
 - Fix CI/release TypeScript resolution on clean runners
