@@ -38,5 +38,5 @@ jobs:
           for tarball in release-tarballs/*.tgz
           do
             echo "Publishing $tarball"
-            npm publish "$tarball" --access public --provenance
+            npm publish "./$tarball" --access public --provenance
           done
