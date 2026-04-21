@@ -39,6 +39,11 @@ Owns:
 - thread / turn / request correlation
 - mapping Codex-native requests to generic interaction types
 
+This JSON-RPC bridge layer exists for Codex-facing integration.
+For most third-party tools or custom runtimes, the simpler integration
+surface should stay the local HTTP runtime or the CLI commands layered
+on top of it.
+
 ### 3. Channel runtime
 
 Owns:
@@ -61,6 +66,11 @@ Backends should be thin delivery surfaces. They should not own business logic.
 ### 5. Source adapters
 
 Adapters translate a runtime-specific request model into the generic `Interaction` contract. They are where tool- or runtime-specific semantics belong.
+
+For example:
+- a Codex bridge adapter can translate JSON-RPC app-server requests
+- a Python, Rust, or Java tool can simply use the HTTP/CLI surface and
+  treat `codex-channels` as a local interaction service
 
 ## Design rules
 

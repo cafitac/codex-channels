@@ -145,6 +145,34 @@ test("plugin-bootstrap writes a workspace marketplace entry", async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
+test("help output keeps first-run commands ahead of lower-level bridge commands", async () => {
+  const child = spawn(process.execPath, [cliEntry], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  const doctorIndex = stdout.indexOf("doctor");
+  const demoIndex = stdout.indexOf("demo");
+  const inspectIndex = stdout.indexOf("inspect");
+  const replyIndex = stdout.indexOf("reply");
+  const bridgeIndex = stdout.indexOf("bridge-stdio");
+  assert.ok(doctorIndex >= 0);
+  assert.ok(demoIndex >= 0);
+  assert.ok(inspectIndex >= 0);
+  assert.ok(replyIndex >= 0);
+  assert.ok(bridgeIndex >= 0);
+  assert.ok(doctorIndex < bridgeIndex);
+  assert.ok(demoIndex < bridgeIndex);
+  assert.ok(inspectIndex < bridgeIndex);
+  assert.ok(replyIndex < bridgeIndex);
+});
+
 test("submit publishes one interaction and returns the resolved response", async () => {
   const dir = await mkdtemp(join(tmpdir(), "codex-channels-submit-"));
   const stateFile = join(dir, "state.json");
