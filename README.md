@@ -4,6 +4,49 @@
 
 Most current Codex integrations treat Codex as a worker, an MCP server, or a remote backend. `codex-channels` is aimed at the opposite direction: keeping Codex in the driver's seat while routing interactive requests through pluggable channels such as a local runtime, Slack, Discord, or Telegram.
 
+## At a glance
+
+- **What it is**: a Codex-first interaction runtime for approvals, permissions, user input, and elicitation
+- **Default path**: local-first, single-machine, no SaaS required
+- **Main surfaces**: npm packages + CLI, with an optional Codex plugin wrapper
+- **Current best use case**: give an external runtime or bridge a reusable way to ask the human something while Codex stays the main agent
+
+## Quickstart
+
+### Install from npm
+
+```bash
+npm install -g @cafitac/codex-channels
+codex-channels serve --port 4317 --state-file .codex-channels/state.json
+```
+
+### One-machine local workflow
+
+```bash
+codex-channels status --port 4317
+codex-channels bridge-stdio --port 4317 --state-file .codex-channels/state.json
+```
+
+### Publish one interaction and wait for a reply
+
+```bash
+codex-channels submit \
+  --port 4317 \
+  --state-file .codex-channels/state.json \
+  --interaction-file ./interaction.json
+```
+
+## Why this exists
+
+Codex already exposes low-level interaction primitives through the app-server protocol, including approvals, permissions requests, user input, and MCP elicitation. What is still missing is a reusable runtime that:
+
+1. receives those interaction requests,
+2. persists and routes them,
+3. exposes them through a local or remote channel, and
+4. returns the user's decision back into the Codex-native flow.
+
+That runtime is the purpose of `codex-channels`.
+
 ## Status
 
 Early scaffold / specification-first repository.
@@ -25,17 +68,6 @@ Current repository contents:
 - **Channel-pluggable**: local, Slack, Discord, Telegram, and future backends share one model.
 - **MCP-generic**: not tied to a single MCP server or agent runtime.
 - **OSS-friendly**: packageable as npm modules, with reusable contracts and adapters.
-
-## Problem statement
-
-Codex already exposes low-level interaction primitives through the app-server protocol, including approvals, permissions requests, user input, and MCP elicitation. What is still missing is a reusable runtime that:
-
-1. receives those interaction requests,
-2. persists and routes them,
-3. exposes them through a local or remote channel, and
-4. returns the user's decision back into the Codex-native flow.
-
-That runtime is the purpose of `codex-channels`.
 
 ## Repository layout
 
@@ -69,36 +101,29 @@ The primary distribution target is npm. This is the preferred path for:
 This repository also includes a lightweight Codex plugin wrapper under `.codex-plugin/`.
 The plugin is not the core product; it is a Codex-facing convenience layer for discovery and chat-first guidance. The wrapper now includes local MCP wiring through `.mcp.json`, while the npm packages remain the primary product surface.
 
-## Install (scaffold phase)
-
-```bash
-npm install
-npm run build
-npm run plugin:bootstrap
-node packages/cli/dist/index.js serve --port 4317 --state-file .codex-channels/state.json
-```
-
 ## CLI
 
 ```bash
 npx @cafitac/codex-channels serve --port 4317 --state-file .codex-channels/state.json
 npx @cafitac/codex-channels status --port 4317
+npx @cafitac/codex-channels submit --port 4317 --state-file .codex-channels/state.json --interaction-file ./interaction.json
 npx @cafitac/codex-channels bridge-stdio --port 4317 --state-file .codex-channels/state.json
 npx @cafitac/codex-channels bridge-spawn --port 4317 --state-file .codex-channels/state.json
 npx @cafitac/codex-channels plugin-bootstrap --scope workspace
 ```
 
-## Planned usage model
+## Usage model
 
 - `codex-channels` runs as a local interaction runtime.
 - A Codex app-server bridge or higher-level client feeds interaction requests into it.
+- `submit` can run a compact one-off publish-and-wait loop for a single interaction.
 - `bridge-stdio` can expose the bridge over stdin/stdout while simultaneously hosting the local runtime for user responses.
 - `bridge-spawn` can host the local runtime and spawn a Codex app-server-compatible child process for full bridge orchestration.
 - A backend delivers those requests to a local UI or a remote channel.
 - The first remote backend scaffolds target Slack, Discord, and Telegram.
 - The user's decision is returned to the original request source and marked resolved.
 
-## Planned package strategy
+## Packaging strategy
 
 - **Primary distribution**: npm packages
 - **Optional convenience layer**: Codex plugin wrapper later
