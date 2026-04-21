@@ -1,13 +1,13 @@
 import { globSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
-const files = globSync('packages/*/dist/*.test.js').sort();
+const files = globSync('packages/*/src/*.test.ts').sort();
 if (files.length === 0) {
-  console.error('No compiled test files found. Run npm run build first.');
+  console.error('No source test files found.');
   process.exit(1);
 }
 
-const result = spawnSync(process.execPath, ['--test', ...files], {
+const result = spawnSync(process.execPath, ['--import', 'tsx', '--test', ...files], {
   stdio: 'inherit',
 });
 

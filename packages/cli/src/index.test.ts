@@ -9,7 +9,7 @@ import { createServer } from "node:net";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const cliEntry = join(__dirname, "index.js");
+const cliEntry = join(__dirname, "..", "dist", "index.js");
 
 async function getFreePort(): Promise<number> {
   return await new Promise<number>((resolve, reject) => {

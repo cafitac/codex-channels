@@ -1,7 +1,7 @@
 {
   "name": "codex-channels-monorepo",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local-first channel runtime for Codex-first interactive MCP flows.",
   "workspaces": [
     "packages/*"
@@ -16,8 +16,9 @@
     "publish:dry-run": "node ./scripts/publish-dry-run-workspaces.mjs"
   },
   "devDependencies": {
-    "typescript": "^5.8.3",
-    "@types/node": "^22.15.3"
+    "@types/node": "^22.15.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.3"
   },
   "engines": {
     "node": ">=20"
