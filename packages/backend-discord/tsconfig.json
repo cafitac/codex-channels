@@ -3,11 +3,22 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "baseUrl": "../.."
+    "baseUrl": "../..",
+    "paths": {
+      "@cafitac/codex-channels-core": [
+        "packages/core/dist/index.d.ts"
+      ]
+    }
   },
   "references": [
-    { "path": "../core" }
+    {
+      "path": "../core"
+    }
   ],
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ]
 }

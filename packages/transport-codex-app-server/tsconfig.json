@@ -3,12 +3,28 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "baseUrl": "../.."
+    "baseUrl": "../..",
+    "paths": {
+      "@cafitac/codex-channels-core": [
+        "packages/core/dist/index.d.ts"
+      ],
+      "@cafitac/codex-channels-backend-local": [
+        "packages/backend-local/dist/index.d.ts"
+      ]
+    }
   },
   "references": [
-    { "path": "../core" },
-    { "path": "../backend-local" }
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../backend-local"
+    }
   ],
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ]
 }

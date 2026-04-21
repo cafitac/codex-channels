@@ -3,14 +3,40 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "baseUrl": "../.."
+    "baseUrl": "../..",
+    "paths": {
+      "@cafitac/codex-channels-core": [
+        "packages/core/dist/index.d.ts"
+      ],
+      "@cafitac/codex-channels-backend-local": [
+        "packages/backend-local/dist/index.d.ts"
+      ],
+      "@cafitac/codex-channels-persistence-file": [
+        "packages/persistence-file/dist/index.d.ts"
+      ],
+      "@cafitac/codex-channels-transport-codex-app-server": [
+        "packages/transport-codex-app-server/dist/index.d.ts"
+      ]
+    }
   },
   "references": [
-    { "path": "../core" },
-    { "path": "../backend-local" },
-    { "path": "../persistence-file" },
-    { "path": "../transport-codex-app-server" }
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../backend-local"
+    },
+    {
+      "path": "../persistence-file"
+    },
+    {
+      "path": "../transport-codex-app-server"
+    }
   ],
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ]
 }
