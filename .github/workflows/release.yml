@@ -22,15 +22,12 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: npm run pack:preview
-      - name: Publish core packages
+      - name: Publish packages from workspace directories
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npm publish --workspace packages/core --access public --provenance
-          npm publish --workspace packages/persistence-file --access public --provenance
-          npm publish --workspace packages/backend-local --access public --provenance
-          npm publish --workspace packages/backend-slack --access public --provenance
-          npm publish --workspace packages/backend-discord --access public --provenance
-          npm publish --workspace packages/backend-telegram --access public --provenance
-          npm publish --workspace packages/transport-codex-app-server --access public --provenance
-          npm publish --workspace packages/cli --access public --provenance
+          for workspace in             packages/core             packages/persistence-file             packages/backend-local             packages/backend-slack             packages/backend-discord             packages/backend-telegram             packages/transport-codex-app-server             packages/cli
+          do
+            echo "Publishing $workspace"
+            (cd "$workspace" && npm publish --access public --provenance)
+          done
