@@ -4,8 +4,11 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.4 - 2026-04-21
+
 - Fix workspace build packaging so clean builds regenerate `dist/` outputs before pack/publish flows.
 - Stop tracking stale `tsconfig.tsbuildinfo` artifacts that could make release tarballs miss compiled files.
+- Add a CLI `submit` flow for a single publish-and-wait interaction roundtrip.
 
 ## 0.1.3 - 2026-04-21
 

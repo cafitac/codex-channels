@@ -143,6 +143,7 @@ npm run preflight:ci
 - [v0.1.1 release notes](./docs/releases/v0.1.1.md)
 - [v0.1.2 release notes](./docs/releases/v0.1.2.md)
 - [v0.1.3 release notes](./docs/releases/v0.1.3.md)
+- [v0.1.4 release notes](./docs/releases/v0.1.4.md)
 - [Hermit-Agent integration PRD](./docs/hermit-agent-codex-channels-prd.md)
 - [Hermit-Agent integration RALPLAN](./docs/hermit-agent-codex-channels-ralplan.md)
 - [Hermit-Agent install UX spec](./docs/hermit-agent-codex-channels-install-ux-spec.md)
