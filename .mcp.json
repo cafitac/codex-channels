@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "codex-channels-local": {
+      "command": "node",
+      "args": [
+        "./packages/cli/dist/index.js",
+        "bridge-stdio",
+        "--quiet",
+        "--port",
+        "4317",
+        "--state-file",
+        ".codex-channels/state.json"
+      ],
+      "env": {
+        "CODEX_CHANNELS_PORT": "4317",
+        "CODEX_CHANNELS_STATE_FILE": ".codex-channels/state.json"
+      }
+    }
+  }
+}

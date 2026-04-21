@@ -1,0 +1,13 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/backend-discord" },
+    { "path": "./packages/backend-local" },
+    { "path": "./packages/backend-slack" },
+    { "path": "./packages/backend-telegram" },
+    { "path": "./packages/persistence-file" },
+    { "path": "./packages/transport-codex-app-server" },
+    { "path": "./packages/cli" }
+  ]
+}

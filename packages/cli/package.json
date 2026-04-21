@@ -1,0 +1,53 @@
+{
+  "name": "codex-channels",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "codex-channels": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@cafitac/codex-channels-backend-local": "0.1.0",
+    "@cafitac/codex-channels-core": "0.1.0",
+    "@cafitac/codex-channels-persistence-file": "0.1.0",
+    "@cafitac/codex-channels-transport-codex-app-server": "0.1.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cafitac/codex-channels.git"
+  },
+  "homepage": "https://github.com/cafitac/codex-channels#readme",
+  "bugs": {
+    "url": "https://github.com/cafitac/codex-channels/issues"
+  },
+  "files": [
+    "dist/index.js",
+    "dist/index.js.map",
+    "dist/index.d.ts",
+    "dist/index.d.ts.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": false,
+  "description": "CLI for the codex-channels local-first interaction runtime.",
+  "author": "cafitac",
+  "keywords": [
+    "codex",
+    "channels",
+    "mcp",
+    "local-first",
+    "cli"
+  ]
+}

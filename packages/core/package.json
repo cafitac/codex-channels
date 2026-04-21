@@ -1,0 +1,44 @@
+{
+  "name": "@cafitac/codex-channels-core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cafitac/codex-channels.git"
+  },
+  "homepage": "https://github.com/cafitac/codex-channels#readme",
+  "bugs": {
+    "url": "https://github.com/cafitac/codex-channels/issues"
+  },
+  "files": [
+    "dist/index.js",
+    "dist/index.js.map",
+    "dist/index.d.ts",
+    "dist/index.d.ts.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": false,
+  "description": "Shared interaction model and runtime primitives for Codex-first channel orchestration.",
+  "author": "cafitac",
+  "keywords": [
+    "codex",
+    "channels",
+    "mcp",
+    "local-first",
+    "core"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "references": [
+    { "path": "../core" },
+    { "path": "../backend-local" },
+    { "path": "../persistence-file" },
+    { "path": "../transport-codex-app-server" }
+  ],
+  "include": ["src/**/*.ts"]
+}

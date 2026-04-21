@@ -1,0 +1,40 @@
+{
+  "name": "codex-channels",
+  "version": "0.1.0",
+  "description": "Local-first interaction runtime for Codex-first MCP and channel workflows.",
+  "author": {
+    "name": "cafitac",
+    "url": "https://github.com/cafitac/codex-channels"
+  },
+  "homepage": "https://github.com/cafitac/codex-channels",
+  "repository": "https://github.com/cafitac/codex-channels",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "channels",
+    "mcp",
+    "local-first",
+    "telegram",
+    "slack",
+    "discord"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "codex-channels",
+    "shortDescription": "Local-first channel runtime for Codex",
+    "longDescription": "Use codex-channels to keep Codex as the primary agent while routing approvals, permissions, user input, and elicitation through a local runtime or optional remote channels.",
+    "developerName": "cafitac",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/cafitac/codex-channels",
+    "defaultPrompt": [
+      "Set up codex-channels for a local-first Codex workflow and explain which channel backend fits this project"
+    ],
+    "brandColor": "#1F6FEB",
+    "screenshots": []
+  },
+  "mcpServers": "./.mcp.json"
+}
