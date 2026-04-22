@@ -1,7 +1,7 @@
 {
   "name": "codex-channels-monorepo",
   "private": true,
-  "version": "0.1.26",
+  "version": "0.1.27",
   "description": "Local-first channel runtime for Codex-first interactive MCP flows.",
   "workspaces": [
     "packages/*"

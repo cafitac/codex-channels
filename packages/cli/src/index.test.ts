@@ -1026,6 +1026,84 @@ test("submit publishes one interaction and returns the resolved response", async
   }
 });
 
+test("submit reuses an already running runtime instead of rebinding the port", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-submit-reuse-"));
+  const stateFile = join(dir, "state.json");
+  const interactionFile = join(dir, "interaction.json");
+  const port = await getFreePort();
+
+  await writeFile(interactionFile, JSON.stringify({
+    id: "submit-reuse-1",
+    kind: "approval_request",
+    source: { type: "runtime", name: "reuse-test" },
+    payload: { message: "Reuse running runtime?" },
+    createdAt: new Date().toISOString(),
+    status: "pending",
+  }), "utf8");
+
+  const server = spawn(process.execPath, [cliEntry, "serve", "--port", String(port), "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let serverStdout = "";
+  server.stdout.on("data", (chunk) => {
+    serverStdout += chunk.toString();
+  });
+
+  let submit: ReturnType<typeof spawn> | null = null;
+  try {
+    await waitFor(async () => {
+      const response = await fetch(`http://127.0.0.1:${port}/health`);
+      return response.ok;
+    }, 2000, () => `serve runtime never became healthy: ${serverStdout}`);
+
+    submit = spawn(process.execPath, [cliEntry, "submit", "--port", String(port), "--state-file", stateFile, "--interaction-file", interactionFile, "--timeout-ms", "10000"], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let submitStdout = "";
+    let submitStderr = "";
+    submit.stdout.on("data", (chunk) => {
+      submitStdout += chunk.toString();
+    });
+    submit.stderr.on("data", (chunk) => {
+      submitStderr += chunk.toString();
+    });
+
+    await waitFor(async () => {
+      const interactionsResponse = await fetch(`http://127.0.0.1:${port}/interactions`);
+      const interactionsJson = await interactionsResponse.json() as { interactions: Array<{ id: string }> };
+      return interactionsJson.interactions.some((item) => item.id === "submit-reuse-1");
+    }, 2000, () => `submit interaction never appeared on reused runtime: ${serverStdout}`);
+
+    const respondResponse = await fetch(`http://127.0.0.1:${port}/interactions/submit-reuse-1/respond`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "text", values: ["yes"] }),
+    });
+    assert.equal(respondResponse.ok, true);
+
+    const submitExit = await new Promise<number | null>((resolve) => submit.once("exit", resolve));
+    assert.equal(submitExit, 0, `submit stderr: ${submitStderr}`);
+    assert.equal(submitStderr.includes("EADDRINUSE"), false, `unexpected port conflict: ${submitStderr}`);
+
+    const payload = JSON.parse(submitStdout.trim());
+    assert.deepEqual(payload, {
+      ok: true,
+      response: {
+        interactionId: "submit-reuse-1",
+        action: "text",
+        values: ["yes"],
+        respondedAt: payload.response.respondedAt,
+      },
+    });
+  } finally {
+    server.kill();
+    submit?.kill();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("doctor reports runtime reachability and next steps", async () => {
   const dir = await mkdtemp(join(tmpdir(), "codex-channels-doctor-"));
   const stateFile = join(dir, "state.json");

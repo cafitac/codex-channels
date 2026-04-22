@@ -61,6 +61,18 @@ async function startLocalRuntime(argv: string[]) {
   return { runtime, persistence, server, info };
 }
 
+async function probeLocalRuntime(argv: string[]) {
+  const port = Number(readFlag(argv, "--port", process.env.CODEX_CHANNELS_PORT ?? "4317"));
+  const host = readFlag(argv, "--host", process.env.CODEX_CHANNELS_HOST ?? "127.0.0.1");
+  try {
+    const response = await fetch(`http://${host}:${port}/health`);
+    if (!response.ok) return { reachable: false, host, port };
+    return { reachable: true, host, port };
+  } catch {
+    return { reachable: false, host, port };
+  }
+}
+
 async function runServe(argv: string[]) {
   const { runtime, persistence, server, info } = await startLocalRuntime(argv);
   console.log(JSON.stringify({ ok: true, mode: "local-first", backend: runtime.backend.name, stateFile: persistence.filePath, ...info }, null, 2));
@@ -648,6 +660,21 @@ async function runSubmit(argv: string[]) {
 
   const raw = await readFile(interactionFile, "utf8");
   const interaction = JSON.parse(raw);
+  const runtimeProbe = await probeLocalRuntime(argv);
+  if (runtimeProbe.reachable) {
+    const response = await fetch(`http://${runtimeProbe.host}:${runtimeProbe.port}/interactions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ interaction, timeoutMs }),
+    });
+    if (!response.ok) {
+      throw new Error(`failed to submit interaction to running local runtime: ${response.status}`);
+    }
+    const payload = await response.json() as { ok: boolean; response: unknown };
+    console.log(JSON.stringify({ ok: true, response: payload.response }));
+    return;
+  }
+
   const { runtime, server } = await startLocalRuntime(argv);
   try {
     const response = await runtime.publishAndWait(interaction, timeoutMs);

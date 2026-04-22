@@ -72,6 +72,27 @@ export class LocalHttpChannelServer {
         return json(res, 200, { interactions: this.runtime.registry.list(status ?? undefined) });
       }
 
+      if (method === "POST" && url.pathname === "/interactions") {
+        const body = await readJson(req);
+        const interaction = (body as { interaction?: Interaction }).interaction;
+        const timeoutMs = typeof (body as { timeoutMs?: unknown }).timeoutMs === "number"
+          ? (body as { timeoutMs: number }).timeoutMs
+          : undefined;
+        if (!interaction) {
+          return json(res, 400, { error: "missing interaction" });
+        }
+        try {
+          if (typeof timeoutMs === "number") {
+            const response = await this.runtime.publishAndWait(interaction, timeoutMs);
+            return json(res, 200, { ok: true, interaction: this.runtime.registry.get(interaction.id), response });
+          }
+          const published = await this.runtime.publish(interaction);
+          return json(res, 200, { ok: true, interaction: published });
+        } catch (error) {
+          return json(res, 500, { error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+
       if (method === "GET" && url.pathname.startsWith("/interactions/")) {
         const interactionId = url.pathname.split("/")[2] ?? "";
         const interaction = this.runtime.registry.get(interactionId);
