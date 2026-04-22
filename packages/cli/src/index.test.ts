@@ -245,6 +245,51 @@ test("bridge-spawn boots the local runtime and reports startup metadata", async 
 });
 
 
+
+test("operator-status summarizes reachability, actionable work, and next steps", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-operator-status-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({
+    interactions: [
+      {
+        id: "bootstrap-preview",
+        kind: "progress_update",
+        source: { type: "system", name: "codex-channels" },
+        payload: { message: "ready" },
+        createdAt: "2026-01-01T00:00:00.000Z",
+        status: "delivered",
+      },
+      {
+        id: "actionable-request",
+        kind: "user_input_request",
+        source: { type: "system", name: "test" },
+        payload: { message: "Need an answer" },
+        createdAt: "2026-01-01T00:00:01.000Z",
+        status: "pending",
+      }
+    ]
+  }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "operator-status", "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  const payload = JSON.parse(stdout.trim()) as { runtimeReachable?: boolean; actionableCount?: number; latestInteraction?: { id?: string }; next?: string[] };
+  assert.equal(payload.runtimeReachable, false);
+  assert.equal(payload.actionableCount, 1);
+  assert.equal(payload.latestInteraction?.id, "actionable-request");
+  assert.match(payload.next?.[0] ?? "", /demo|serve/);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
 test("pending shows actionable interactions newest-first and skips progress updates", async () => {
   const dir = await mkdtemp(join(tmpdir(), "codex-channels-pending-"));
   const stateFile = join(dir, "state.json");

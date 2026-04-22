@@ -216,6 +216,52 @@ async function runReplyLatest(argv: string[]) {
   await runReply(nextArgv);
 }
 
+
+async function runOperatorStatus(argv: string[]) {
+  const { filePath, interactions } = await loadStateInteractions(argv);
+  const pending = sortInteractionsNewestFirst(filterActionableInteractions(interactions));
+  const latest = pending[0];
+  const host = readFlag(argv, "--host", process.env.CODEX_CHANNELS_HOST ?? "127.0.0.1");
+  const port = Number(readFlag(argv, "--port", process.env.CODEX_CHANNELS_PORT ?? "4317"));
+  let runtimeReachable = false;
+  try {
+    const response = await fetch(`http://${host}:${port}/health`);
+    runtimeReachable = response.ok;
+  } catch {
+    runtimeReachable = false;
+  }
+
+  const payload = {
+    ok: true,
+    stateFile: filePath,
+    runtimeReachable,
+    actionableCount: pending.length,
+    latestInteraction: latest ? {
+      id: latest.id,
+      kind: latest.kind,
+      status: latest.status,
+      source: latest.source.name,
+      message: summarizeInteraction(latest),
+    } : null,
+    next: runtimeReachable
+      ? (latest
+          ? [
+              `codex-channels reply-latest --text staging`,
+              `codex-channels pending`,
+            ]
+          : [
+              `codex-channels demo`,
+              `codex-channels pending`,
+            ])
+      : [
+          `codex-channels demo`,
+          `codex-channels serve --port ${port} --state-file ${filePath}`,
+        ],
+  };
+
+  console.log(JSON.stringify(payload, null, 2));
+}
+
 async function runDoctor(argv: string[]) {
   const { filePath, interactions } = await loadStateInteractions(argv);
   const host = readFlag(argv, "--host", process.env.CODEX_CHANNELS_HOST ?? "127.0.0.1");
@@ -406,11 +452,24 @@ Only stay explanatory when:
 When invoked from inside Codex, prefer **doing the next operator step** over only restating documentation.
 
 Default workflow:
+- If the user asks "what should I do next?", run \`codex-channels operator-status\` first and summarize the next action.
 - If the user asks whether the runtime is ready, run \`codex-channels doctor\` and summarize the result.
 - If the user asks what is waiting, run \`codex-channels pending\` first and fall back to \`inspect\` only when deeper detail is needed.
 - If the user asks to test the loop, use \`codex-channels demo\` and then point them toward \`pending\` and \`reply-latest\`.
 - If the user asks to answer the newest request, prefer \`codex-channels reply-latest --text ...\` over making them copy an interaction id manually.
 - If a step needs a local port bind, explain that approval/escalation is expected for the real runtime path.
+
+## Fastest operator check
+
+For a single run-ready summary, prefer:
+\`\`\`bash
+codex-channels operator-status
+\`\`\`
+
+This tells you:
+- whether the runtime is reachable
+- whether any actionable requests are waiting
+- what the next best operator step is
 
 ## Guided operator flow
 
@@ -421,6 +480,7 @@ codex-channels plugin-bootstrap
 
 ### 2. Check the current state
 \`\`\`bash
+codex-channels operator-status
 codex-channels doctor
 codex-channels pending
 \`\`\`
@@ -803,6 +863,11 @@ async function main(argv: string[]) {
     return;
   }
 
+  if (command === "operator-status") {
+    await runOperatorStatus(argv);
+    return;
+  }
+
   if (command === "reply-latest") {
     await runReplyLatest(argv);
     return;
@@ -838,7 +903,7 @@ async function main(argv: string[]) {
     return;
   }
 
-  console.log(`codex-channels\n\nCommands:\n  doctor            Check the local runtime and show the next useful commands\n  demo              Start a demo interaction and wait for a reply\n  inspect           Read the local interaction state file and list current interactions\n  pending           Show the newest pending or delivered interactions first\n  reply             Reply to one interaction on the running local runtime\n  reply-latest      Reply to the newest pending interaction without copying its id\n  self-update       Check for a newer published CLI version and install it\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Generate a Codex plugin wrapper and register it in the marketplace\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --id <interaction-id>      Target interaction for inspect/reply\n  --status <status>          Filter inspect output by interaction status\n  --text <value>             Reply value for reply/submit flows\n  --accept                   Send an accept reply\n  --decline                  Send a decline reply\n  --cancel                   Cancel the interaction\n  --timeout-ms <ms>          Bridge or demo interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: user | workspace (prompts with an arrow-key menu when interactive; defaults to user otherwise)\n  --plugin-path <path>       explicit plugin root to generate and register\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --no-update-check          Skip automatic update prompts for this run\n  --yes                      Apply self-update without prompting\n  --json                     Emit JSON output for inspect\n  --quiet                    Suppress bridge startup metadata on stderr`);
+  console.log(`codex-channels\n\nCommands:\n  doctor            Check the local runtime and show the next useful commands\n  demo              Start a demo interaction and wait for a reply\n  inspect           Read the local interaction state file and list current interactions\n  operator-status   Summarize runtime reachability, pending work, and the next best operator step\n  pending           Show the newest pending or delivered interactions first\n  reply             Reply to one interaction on the running local runtime\n  reply-latest      Reply to the newest pending interaction without copying its id\n  self-update       Check for a newer published CLI version and install it\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Generate a Codex plugin wrapper and register it in the marketplace\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --id <interaction-id>      Target interaction for inspect/reply\n  --status <status>          Filter inspect output by interaction status\n  --text <value>             Reply value for reply/submit flows\n  --accept                   Send an accept reply\n  --decline                  Send a decline reply\n  --cancel                   Cancel the interaction\n  --timeout-ms <ms>          Bridge or demo interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: user | workspace (prompts with an arrow-key menu when interactive; defaults to user otherwise)\n  --plugin-path <path>       explicit plugin root to generate and register\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --no-update-check          Skip automatic update prompts for this run\n  --yes                      Apply self-update without prompting\n  --json                     Emit JSON output for inspect\n  --quiet                    Suppress bridge startup metadata on stderr`);
 }
 
 main(process.argv).catch((error) => {

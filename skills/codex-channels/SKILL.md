@@ -33,11 +33,24 @@ Only stay explanatory when:
 When invoked from inside Codex, prefer **doing the next operator step** over only restating documentation.
 
 Default workflow:
+- If the user asks "what should I do next?", run `codex-channels operator-status` first and summarize the next action.
 - If the user asks whether the runtime is ready, run `codex-channels doctor` and summarize the result.
 - If the user asks what is waiting, run `codex-channels pending` first and fall back to `inspect` only when deeper detail is needed.
 - If the user asks to test the loop, use `codex-channels demo` and then point them toward `pending` and `reply-latest`.
 - If the user asks to answer the newest request, prefer `codex-channels reply-latest --text ...` over making them copy an interaction id manually.
 - If a step needs a local port bind, explain that approval/escalation is expected for the real runtime path.
+
+## Fastest operator check
+
+For a single run-ready summary, prefer:
+```bash
+codex-channels operator-status
+```
+
+This tells you:
+- whether the runtime is reachable
+- whether any actionable requests are waiting
+- what the next best operator step is
 
 ## Guided operator flow
 
@@ -48,6 +61,7 @@ codex-channels plugin-bootstrap
 
 ### 2. Check the current state
 ```bash
+codex-channels operator-status
 codex-channels doctor
 codex-channels pending
 ```

@@ -4,6 +4,7 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+- Add `operator-status` as a one-shot operator summary for Codex-guided local runtime flows.
 ## 0.1.15 - 2026-04-22
 
 - Make the `codex-channels` skill execution-first for obvious subcommand intents like doctor, demo, pending, and reply-latest.

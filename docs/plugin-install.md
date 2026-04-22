@@ -178,3 +178,5 @@ The local runtime loop now includes two convenience commands for Codex-guided us
 
 - `codex-channels pending` — show actionable interactions newest-first
 - `codex-channels reply-latest --text ...` — reply to the newest actionable interaction without copying the id
+
+- `codex-channels operator-status` — one-shot summary of runtime reachability, pending work, and the next operator step

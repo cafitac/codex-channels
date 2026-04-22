@@ -87,3 +87,13 @@ codex-channels reply-latest --text staging
 ```
 
 `pending` shows only actionable requests, and `reply-latest` lets you close the newest one without copying the id by hand.
+
+## Fastest operator summary
+
+For the quickest Codex-guided check after bootstrap:
+
+```bash
+codex-channels operator-status
+```
+
+This returns runtime reachability, actionable interaction count, the latest actionable request, and the next best operator command.
