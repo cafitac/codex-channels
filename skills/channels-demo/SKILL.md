@@ -1,6 +1,6 @@
 ---
 name: channels-demo
-description: [CODEX-CHANNELS] Start a local demo interaction and guide the pending/reply loop.
+description: "[CODEX-CHANNELS] Start a local demo interaction and guide the pending/reply loop."
 ---
 
 # channels-demo

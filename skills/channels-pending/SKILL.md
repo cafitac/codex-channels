@@ -1,6 +1,6 @@
 ---
 name: channels-pending
-description: [CODEX-CHANNELS] Show actionable interactions newest-first.
+description: "[CODEX-CHANNELS] Show actionable interactions newest-first."
 ---
 
 # channels-pending

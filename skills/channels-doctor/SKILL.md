@@ -1,6 +1,6 @@
 ---
 name: channels-doctor
-description: [CODEX-CHANNELS] Check runtime health and summarize the next useful commands.
+description: "[CODEX-CHANNELS] Check runtime health and summarize the next useful commands."
 ---
 
 # channels-doctor

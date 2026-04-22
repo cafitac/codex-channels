@@ -1,6 +1,6 @@
 ---
 name: operator-status
-description: [CODEX-CHANNELS] Summarize runtime reachability, pending work, and the next best operator step.
+description: "[CODEX-CHANNELS] Summarize runtime reachability, pending work, and the next best operator step."
 ---
 
 # operator-status

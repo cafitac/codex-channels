@@ -1,6 +1,6 @@
 ---
 name: channels-reply-latest
-description: [CODEX-CHANNELS] Reply to the newest actionable interaction with less shell ceremony.
+description: "[CODEX-CHANNELS] Reply to the newest actionable interaction with less shell ceremony."
 ---
 
 # channels-reply-latest

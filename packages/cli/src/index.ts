@@ -496,7 +496,7 @@ function buildCodexChannelsSkillDefinitions(): SkillDefinition[] {
   return [
     { name: "codex-channels", content: `---
 name: codex-channels
-description: [CODEX-CHANNELS] Set up or operate the local codex-channels runtime for Codex-first interaction routing.
+description: "[CODEX-CHANNELS] Set up or operate the local codex-channels runtime for Codex-first interaction routing."
 ---
 
 # codex-channels
@@ -608,7 +608,7 @@ codex-channels reply --id <interaction-id> --text staging
 ` },
     { name: "channels-demo", content: `---
 name: channels-demo
-description: [CODEX-CHANNELS] Start a local demo interaction and guide the pending/reply loop.
+description: "[CODEX-CHANNELS] Start a local demo interaction and guide the pending/reply loop."
 ---
 
 # channels-demo
@@ -622,7 +622,7 @@ codex-channels demo
 ` },
     { name: "channels-doctor", content: `---
 name: channels-doctor
-description: [CODEX-CHANNELS] Check runtime health and summarize the next useful commands.
+description: "[CODEX-CHANNELS] Check runtime health and summarize the next useful commands."
 ---
 
 # channels-doctor
@@ -636,7 +636,7 @@ codex-channels doctor
 ` },
     { name: "channels-pending", content: `---
 name: channels-pending
-description: [CODEX-CHANNELS] Show actionable interactions newest-first.
+description: "[CODEX-CHANNELS] Show actionable interactions newest-first."
 ---
 
 # channels-pending
@@ -650,7 +650,7 @@ codex-channels pending
 ` },
     { name: "channels-reply-latest", content: `---
 name: channels-reply-latest
-description: [CODEX-CHANNELS] Reply to the newest actionable interaction with less shell ceremony.
+description: "[CODEX-CHANNELS] Reply to the newest actionable interaction with less shell ceremony."
 ---
 
 # channels-reply-latest
@@ -664,7 +664,7 @@ codex-channels reply-latest --text staging
 ` },
     { name: "next-step", content: `---
 name: next-step
-description: [CODEX-CHANNELS] Execute the next obvious local operator action when it is safe and unambiguous.
+description: "[CODEX-CHANNELS] Execute the next obvious local operator action when it is safe and unambiguous."
 ---
 
 # next-step
@@ -678,7 +678,7 @@ codex-channels next-step
 ` },
     { name: "operator-status", content: `---
 name: operator-status
-description: [CODEX-CHANNELS] Summarize runtime reachability, pending work, and the next best operator step.
+description: "[CODEX-CHANNELS] Summarize runtime reachability, pending work, and the next best operator step."
 ---
 
 # operator-status

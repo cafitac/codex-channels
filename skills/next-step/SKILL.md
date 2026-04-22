@@ -1,6 +1,6 @@
 ---
 name: next-step
-description: [CODEX-CHANNELS] Execute the next obvious local operator action when it is safe and unambiguous.
+description: "[CODEX-CHANNELS] Execute the next obvious local operator action when it is safe and unambiguous."
 ---
 
 # next-step

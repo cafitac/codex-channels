@@ -1,6 +1,6 @@
 ---
 name: codex-channels
-description: [CODEX-CHANNELS] Set up or operate the local codex-channels runtime for Codex-first interaction routing.
+description: "[CODEX-CHANNELS] Set up or operate the local codex-channels runtime for Codex-first interaction routing."
 ---
 
 # codex-channels
