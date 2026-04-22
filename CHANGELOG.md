@@ -4,6 +4,11 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.10 - 2026-04-22
+
+- Publish the user-scope-first bootstrap behavior in the CLI package.
+- Make no-arg `plugin-bootstrap` safe for global installs by defaulting to user scope and generating a proper plugin root.
+
 ## 0.1.9 - 2026-04-22
 
 - Remove tracked TypeScript build cache files and force clean workspace rebuilds before packaging.
