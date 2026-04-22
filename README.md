@@ -35,11 +35,15 @@ to make **Codex-side human interaction** easier.
 
 ```bash
 npm install -g @cafitac/codex-channels
-codex-channels plugin-bootstrap --scope user
+codex-channels plugin-bootstrap
 ```
 
 Then restart Codex so it can rediscover the user-level plugin wrapper
 and MCP surface.
+
+If you run `plugin-bootstrap` in an interactive shell, it can ask
+whether you want user-level or workspace-local installation. For most
+global installs, user-level is the recommended default.
 
 ### Try it inside Codex first
 
@@ -151,7 +155,7 @@ docs/
 After:
 
 ```bash
-codex-channels plugin-bootstrap --scope user
+codex-channels plugin-bootstrap
 ```
 
 restart Codex.

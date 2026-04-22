@@ -2,6 +2,7 @@
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { homedir } from "node:os";
+import { createInterface } from "node:readline/promises";
 import { LocalHttpChannelServer, LocalMemoryBackend } from "@cafitac/codex-channels-backend-local";
 import { Interaction, InteractionRuntime, InteractionStatus, createInteraction } from "@cafitac/codex-channels-core";
 import { JsonFileInteractionPersistence } from "@cafitac/codex-channels-persistence-file";
@@ -401,8 +402,26 @@ async function ensurePluginSourcePath(scope: string, requestedPluginPath: string
   return './plugins/codex-channels';
 }
 
+async function resolveBootstrapScope(argv: string[]) {
+  const explicit = argv.includes("--scope");
+  if (explicit) {
+    return readFlag(argv, "--scope", "user");
+  }
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    return "user";
+  }
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const answer = (await rl.question("Install codex-channels for all Codex workspaces or just this workspace? [U/w] ")).trim().toLowerCase();
+    return answer === "w" || answer === "workspace" ? "workspace" : "user";
+  } finally {
+    rl.close();
+  }
+}
+
 async function runPluginBootstrap(argv: string[]) {
-  const scope = readFlag(argv, "--scope", "user");
+  const scope = await resolveBootstrapScope(argv);
   const requestedPluginPath = argv.includes('--plugin-path') ? readFlag(argv, '--plugin-path', '') : null;
   const cliEntry = resolve(process.argv[1] ?? "./dist/index.js");
   const pluginPath = await ensurePluginSourcePath(scope, requestedPluginPath, cliEntry, {
@@ -501,7 +520,7 @@ async function main(argv: string[]) {
     return;
   }
 
-  console.log(`codex-channels\n\nCommands:\n  doctor            Check the local runtime and show the next useful commands\n  demo              Start a demo interaction and wait for a reply\n  inspect           Read the local interaction state file and list current interactions\n  reply             Reply to one interaction on the running local runtime\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Generate a Codex plugin wrapper and register it in the marketplace\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --id <interaction-id>      Target interaction for inspect/reply\n  --status <status>          Filter inspect output by interaction status\n  --text <value>             Reply value for reply/submit flows\n  --accept                   Send an accept reply\n  --decline                  Send a decline reply\n  --cancel                   Cancel the interaction\n  --timeout-ms <ms>          Bridge or demo interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: user | workspace (default user)\n  --plugin-path <path>       explicit plugin root to generate and register\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --json                     Emit JSON output for inspect\n  --quiet                    Suppress bridge startup metadata on stderr`);
+  console.log(`codex-channels\n\nCommands:\n  doctor            Check the local runtime and show the next useful commands\n  demo              Start a demo interaction and wait for a reply\n  inspect           Read the local interaction state file and list current interactions\n  reply             Reply to one interaction on the running local runtime\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Generate a Codex plugin wrapper and register it in the marketplace\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --id <interaction-id>      Target interaction for inspect/reply\n  --status <status>          Filter inspect output by interaction status\n  --text <value>             Reply value for reply/submit flows\n  --accept                   Send an accept reply\n  --decline                  Send a decline reply\n  --cancel                   Cancel the interaction\n  --timeout-ms <ms>          Bridge or demo interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: user | workspace (prompts when omitted in interactive shells; defaults to user otherwise)\n  --plugin-path <path>       explicit plugin root to generate and register\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --json                     Emit JSON output for inspect\n  --quiet                    Suppress bridge startup metadata on stderr`);
 }
 
 main(process.argv).catch((error) => {

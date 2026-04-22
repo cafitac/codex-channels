@@ -8,7 +8,7 @@ From any shell:
 
 ```bash
 npm install -g @cafitac/codex-channels
-codex-channels plugin-bootstrap --scope user
+codex-channels plugin-bootstrap
 ```
 
 What this does:
@@ -16,6 +16,10 @@ What this does:
 - writes `~/.agents/plugins/marketplace.json`
 - generates a user-level `~/plugins/codex-channels` plugin root
 - registers that plugin source for Codex
+
+When run interactively, `plugin-bootstrap` can ask whether you want
+user-level or workspace-local installation. For a global CLI install,
+user-level is the recommended default.
 
 After that:
 1. restart Codex

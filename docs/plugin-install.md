@@ -40,8 +40,12 @@ The default recommendation is user-level installation so Codex can see
 the plugin across workspaces:
 
 ```bash
-node packages/cli/dist/index.js plugin-bootstrap --scope user
+node packages/cli/dist/index.js plugin-bootstrap
 ```
+
+When run interactively, `plugin-bootstrap` can ask whether you want
+user-level or workspace-local installation. User-level is the
+recommended default for a globally installed CLI.
 
 Workspace-level installation is still available when you only want to
 test inside one repository:
