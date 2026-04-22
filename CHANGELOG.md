@@ -4,6 +4,10 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.24 - 2026-04-22
+
+- Add a low-noise `follow` mode plus `channels-follow` shortcut skill so Codex-guided sessions can quietly resolve the next actionable request when reply text is provided.
+
 - Add a low-noise `follow` mode that can resolve the next actionable interaction once it appears when reply text is provided.
 ## 0.1.23 - 2026-04-22
 

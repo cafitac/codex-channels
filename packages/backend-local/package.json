@@ -1,6 +1,6 @@
 {
   "name": "@cafitac/codex-channels-backend-local",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./src/index.ts",
@@ -11,7 +11,7 @@
     }
   },
   "dependencies": {
-    "@cafitac/codex-channels-core": "0.1.23"
+    "@cafitac/codex-channels-core": "0.1.24"
   },
   "scripts": {
     "prepack": "tsc -p tsconfig.json"
