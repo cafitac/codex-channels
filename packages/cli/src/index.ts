@@ -132,6 +132,8 @@ type OperatorSummary = {
   ok: true;
   stateFile: string;
   runtimeReachable: boolean;
+  runtimeProbeStatus: "reachable" | "unreachable" | "probe-failed";
+  runtimeProbeError: string | null;
   actionableCount: number;
   latestInteraction: {
     id: string;
@@ -151,17 +153,30 @@ async function buildOperatorSummary(argv: string[]): Promise<OperatorSummary> {
   const host = readFlag(argv, "--host", process.env.CODEX_CHANNELS_HOST ?? "127.0.0.1");
   const port = Number(readFlag(argv, "--port", process.env.CODEX_CHANNELS_PORT ?? "4317"));
   let runtimeReachable = false;
-  try {
-    const response = await fetch(`http://${host}:${port}/health`);
-    runtimeReachable = response.ok;
-  } catch {
-    runtimeReachable = false;
+  let runtimeProbeStatus: OperatorSummary["runtimeProbeStatus"] = "unreachable";
+  let runtimeProbeError: string | null = null;
+  const simulatedProbeError = process.env.CODEX_CHANNELS_HEALTHCHECK_ERROR?.trim();
+  if (simulatedProbeError) {
+    runtimeProbeStatus = "probe-failed";
+    runtimeProbeError = simulatedProbeError;
+  } else {
+    try {
+      const response = await fetch(`http://${host}:${port}/health`);
+      runtimeReachable = response.ok;
+      runtimeProbeStatus = response.ok ? "reachable" : "unreachable";
+    } catch (error) {
+      runtimeReachable = false;
+      runtimeProbeStatus = "probe-failed";
+      runtimeProbeError = error instanceof Error ? error.message : String(error);
+    }
   }
 
   return {
     ok: true,
     stateFile: filePath,
     runtimeReachable,
+    runtimeProbeStatus,
+    runtimeProbeError,
     actionableCount: pending.length,
     latestInteraction: latest ? {
       id: latest.id,
@@ -170,7 +185,7 @@ async function buildOperatorSummary(argv: string[]): Promise<OperatorSummary> {
       source: latest.source.name,
       message: summarizeInteraction(latest),
     } : null,
-    next: runtimeReachable
+    next: runtimeProbeStatus === "reachable"
       ? (latest
           ? [
               `codex-channels reply-latest --text staging`,
@@ -180,19 +195,37 @@ async function buildOperatorSummary(argv: string[]): Promise<OperatorSummary> {
               `codex-channels demo`,
               `codex-channels pending`,
             ])
-      : [
-          `codex-channels demo`,
-          `codex-channels serve --port ${port} --state-file ${filePath}`,
-        ],
+      : runtimeProbeStatus === "probe-failed"
+        ? [
+            `retry from a shell: codex-channels operator-status --state-file ${filePath} --port ${port}`,
+            latest
+              ? `or reply from a shell: codex-channels reply-latest --text <value> --state-file ${filePath} --port ${port}`
+              : `or start/restart the runtime: codex-channels serve --port ${port} --state-file ${filePath}`,
+          ]
+        : [
+            latest
+              ? `codex-channels serve --port ${port} --state-file ${filePath}`
+              : `codex-channels demo`,
+            `codex-channels serve --port ${port} --state-file ${filePath}`,
+          ],
   };
 }
 
 function formatOperatorSummary(payload: OperatorSummary) {
+  const runtimeLine = payload.runtimeProbeStatus === "reachable"
+    ? "runtime: reachable"
+    : payload.runtimeProbeStatus === "probe-failed"
+      ? "runtime: probe failed from this execution context"
+      : "runtime: not reachable";
   const lines = [
     `state file: ${payload.stateFile}`,
-    `runtime: ${payload.runtimeReachable ? "reachable" : "not reachable"}`,
+    runtimeLine,
     `actionable interactions: ${payload.actionableCount}`,
   ];
+  if (payload.runtimeProbeStatus === "probe-failed" && payload.runtimeProbeError) {
+    lines.push(`probe error: ${payload.runtimeProbeError}`);
+    lines.push("note: the runtime may still be alive in another shell or blocked by sandbox/network policy in this execution context");
+  }
   if (payload.latestInteraction) {
     lines.push(`latest: ${payload.latestInteraction.id}`);
     lines.push(`  kind: ${payload.latestInteraction.kind}`);
@@ -212,6 +245,8 @@ function formatOperatorSummary(payload: OperatorSummary) {
 function createOperatorSummarySignature(payload: OperatorSummary) {
   return JSON.stringify({
     runtimeReachable: payload.runtimeReachable,
+    runtimeProbeStatus: payload.runtimeProbeStatus,
+    runtimeProbeError: payload.runtimeProbeError,
     actionableCount: payload.actionableCount,
     latestInteraction: payload.latestInteraction,
     next: payload.next,
@@ -220,8 +255,10 @@ function createOperatorSummarySignature(payload: OperatorSummary) {
 
 function summarizeOperatorChange(previous: OperatorSummary | null, current: OperatorSummary) {
   if (!previous) return "initial summary";
-  if (previous.runtimeReachable !== current.runtimeReachable) {
-    return current.runtimeReachable ? "runtime became reachable" : "runtime became unreachable";
+  if (previous.runtimeProbeStatus !== current.runtimeProbeStatus) {
+    if (current.runtimeProbeStatus === "reachable") return "runtime became reachable";
+    if (current.runtimeProbeStatus === "probe-failed") return "runtime probe failed in this execution context";
+    return "runtime became unreachable";
   }
   if (previous.actionableCount !== current.actionableCount) {
     return current.actionableCount > previous.actionableCount ? "new actionable interaction detected" : "actionable interaction resolved";
@@ -294,7 +331,7 @@ async function runFollow(argv: string[]) {
       previousPayload = payload;
     }
 
-    if (textValue && payload.runtimeReachable && payload.latestInteraction && payload.latestInteraction.id !== resolvedInteractionId) {
+    if (textValue && payload.runtimeProbeStatus === "reachable" && payload.latestInteraction && payload.latestInteraction.id !== resolvedInteractionId) {
       if (!hasFlag(argv, "--json")) {
         console.log(`[CODEX-CHANNELS] auto-resolving ${payload.latestInteraction.id} with provided text`);
       }
@@ -431,6 +468,12 @@ async function runNextStep(argv: string[]) {
   const payload = await buildOperatorSummary(argv);
   if (hasFlag(argv, "--json")) {
     console.log(JSON.stringify({ ok: true, next: payload.next[0] ?? null }, null, 2));
+    return;
+  }
+
+  if (payload.runtimeProbeStatus === "probe-failed") {
+    console.log("runtime probe failed from this execution context.");
+    console.log(payload.next[0] ?? `retry from a shell: codex-channels operator-status --state-file ${payload.stateFile}`);
     return;
   }
 

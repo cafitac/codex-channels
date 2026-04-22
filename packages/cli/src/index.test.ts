@@ -274,6 +274,7 @@ test("bridge-spawn boots the local runtime and reports startup metadata", async 
 
   const child = spawn(process.execPath, [cliEntry, "bridge-spawn", "--port", String(port), "--state-file", stateFile, "--spawn-mode", "raw", "--codex-command", process.execPath, "--codex-arg", fakeChild], {
     stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, CODEX_CHANNELS_HEALTHCHECK_ERROR: "simulated probe failure" },
   });
 
   let stderr = "";
@@ -297,6 +298,53 @@ test("bridge-spawn boots the local runtime and reports startup metadata", async 
 
 
 
+
+
+test("operator-status reports probe failures without pretending the runtime is definitely down", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-operator-probe-fail-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({ interactions: [] }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "operator-status", "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, CODEX_CHANNELS_HEALTHCHECK_ERROR: "simulated probe failure" },
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.match(stdout, /runtime: probe failed from this execution context/);
+  assert.match(stdout, /note: the runtime may still be alive/);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("next-step reports probe failure guidance instead of running blindly", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-next-step-probe-fail-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({ interactions: [] }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "next-step", "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, CODEX_CHANNELS_HEALTHCHECK_ERROR: "simulated probe failure" },
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.match(stdout, /runtime probe failed from this execution context/);
+  assert.match(stdout, /retry from a shell/);
+
+  await rm(dir, { recursive: true, force: true });
+});
 
 test("operator-status respects source and kind filters", async () => {
   const dir = await mkdtemp(join(tmpdir(), "codex-channels-operator-filter-"));
@@ -570,6 +618,7 @@ test("next-step explains when reply text is missing", async () => {
 
   const child = spawn(process.execPath, [cliEntry, "next-step", "--state-file", stateFile], {
     stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, CODEX_CHANNELS_HEALTHCHECK_ERROR: "simulated probe failure" },
   });
 
   let stdout = "";
@@ -611,6 +660,7 @@ test("operator-status summarizes reachability, actionable work, and next steps",
 
   const child = spawn(process.execPath, [cliEntry, "operator-status", "--state-file", stateFile], {
     stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, CODEX_CHANNELS_HEALTHCHECK_ERROR: "simulated probe failure" },
   });
 
   let stdout = "";
