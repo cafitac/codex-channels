@@ -180,3 +180,5 @@ The local runtime loop now includes two convenience commands for Codex-guided us
 - `codex-channels reply-latest --text ...` — reply to the newest actionable interaction without copying the id
 
 - `codex-channels operator-status` — one-shot summary of runtime reachability, pending work, and the next operator step
+
+Use `codex-channels operator-status --json` when you want the same summary in a machine-readable shape.

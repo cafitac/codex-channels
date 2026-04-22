@@ -259,7 +259,27 @@ async function runOperatorStatus(argv: string[]) {
         ],
   };
 
-  console.log(JSON.stringify(payload, null, 2));
+  if (hasFlag(argv, "--json")) {
+    console.log(JSON.stringify(payload, null, 2));
+    return;
+  }
+
+  console.log(`state file: ${payload.stateFile}`);
+  console.log(`runtime: ${payload.runtimeReachable ? "reachable" : "not reachable"}`);
+  console.log(`actionable interactions: ${payload.actionableCount}`);
+  if (payload.latestInteraction) {
+    console.log(`latest: ${payload.latestInteraction.id}`);
+    console.log(`  kind: ${payload.latestInteraction.kind}`);
+    console.log(`  status: ${payload.latestInteraction.status}`);
+    console.log(`  source: ${payload.latestInteraction.source}`);
+    console.log(`  message: ${payload.latestInteraction.message}`);
+  } else {
+    console.log("latest: none");
+  }
+  console.log("next:");
+  for (const step of payload.next) {
+    console.log(`- ${step}`);
+  }
 }
 
 async function runDoctor(argv: string[]) {

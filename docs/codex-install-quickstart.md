@@ -96,4 +96,4 @@ For the quickest Codex-guided check after bootstrap:
 codex-channels operator-status
 ```
 
-This returns runtime reachability, actionable interaction count, the latest actionable request, and the next best operator command.
+This returns runtime reachability, actionable interaction count, the latest actionable request, and the next best operator command. Add `--json` if you want the machine-readable payload instead of the human summary.

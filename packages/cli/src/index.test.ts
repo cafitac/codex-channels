@@ -281,11 +281,36 @@ test("operator-status summarizes reachability, actionable work, and next steps",
 
   const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
   assert.equal(exitCode, 0);
-  const payload = JSON.parse(stdout.trim()) as { runtimeReachable?: boolean; actionableCount?: number; latestInteraction?: { id?: string }; next?: string[] };
-  assert.equal(payload.runtimeReachable, false);
-  assert.equal(payload.actionableCount, 1);
-  assert.equal(payload.latestInteraction?.id, "actionable-request");
-  assert.match(payload.next?.[0] ?? "", /demo|serve/);
+  assert.match(stdout, /runtime: not reachable/);
+  assert.match(stdout, /actionable interactions: 1/);
+  assert.match(stdout, /latest: actionable-request/);
+  assert.match(stdout, /codex-channels demo|codex-channels serve/);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+
+test("operator-status --json preserves the machine-readable summary", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-operator-status-json-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({ interactions: [] }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "operator-status", "--state-file", stateFile, "--json"], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  const payload = JSON.parse(stdout.trim()) as { ok?: boolean; actionableCount?: number; latestInteraction?: unknown; next?: string[] };
+  assert.equal(payload.ok, true);
+  assert.equal(payload.actionableCount, 0);
+  assert.equal(payload.latestInteraction, null);
+  assert.equal(Array.isArray(payload.next), true);
 
   await rm(dir, { recursive: true, force: true });
 });
