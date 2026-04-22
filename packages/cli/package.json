@@ -1,6 +1,6 @@
 {
   "name": "@cafitac/codex-channels",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "type": "module",
   "bin": {
     "codex-channels": "dist/index.js"
@@ -14,10 +14,10 @@
     }
   },
   "dependencies": {
-    "@cafitac/codex-channels-backend-local": "0.1.12",
-    "@cafitac/codex-channels-core": "0.1.12",
-    "@cafitac/codex-channels-persistence-file": "0.1.12",
-    "@cafitac/codex-channels-transport-codex-app-server": "0.1.12"
+    "@cafitac/codex-channels-backend-local": "0.1.13",
+    "@cafitac/codex-channels-core": "0.1.13",
+    "@cafitac/codex-channels-persistence-file": "0.1.13",
+    "@cafitac/codex-channels-transport-codex-app-server": "0.1.13"
   },
   "scripts": {
     "prepack": "tsc -p tsconfig.json"
