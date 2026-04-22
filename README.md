@@ -254,6 +254,7 @@ npm run preflight:ci
 - [Architecture](./docs/architecture.md)
 - [Protocol model](./docs/protocol.md)
 - [Codex install quickstart](./docs/codex-install-quickstart.md)
+- [Codex-native interaction roadmap](./docs/codex-native-interaction-roadmap.md)
 - [Publishing](./docs/publishing.md)
 - [Release checklist](./docs/release-checklist.md)
 - [v0.1.9 release notes](./docs/releases/v0.1.9.md)
