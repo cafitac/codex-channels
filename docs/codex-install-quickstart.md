@@ -2,9 +2,29 @@
 
 This is the shortest practical path to using `codex-channels` as a local Codex plugin.
 
+## Recommended user install
+
+From any shell:
+
+```bash
+npm install -g @cafitac/codex-channels
+codex-channels plugin-bootstrap --scope user
+```
+
+What this does:
+- installs the CLI globally
+- writes `~/.agents/plugins/marketplace.json`
+- generates a user-level `~/plugins/codex-channels` plugin root
+- registers that plugin source for Codex
+
+After that:
+1. restart Codex
+2. let Codex reload local plugins
+3. use the `codex-channels` plugin/skill surface
+
 ## Workspace-local install
 
-From the repository root:
+If you only want the plugin limited to one repository:
 
 ```bash
 npm install
@@ -12,50 +32,16 @@ npm run build
 npm run plugin:bootstrap
 ```
 
-What this does:
-- builds the local CLI
-- writes `.agents/plugins/marketplace.json`
-- registers the current repository as a local plugin source for Codex
-
-After that:
-1. restart Codex
-2. let Codex reload local plugins
-3. use the `codex-channels` plugin/skill surface
-
-## User-level install
-
-If you want the plugin wrapper available across workspaces:
-
-```bash
-npm install
-npm run build
-npm run plugin:bootstrap:user
-```
-
-By default this writes to:
-- `~/.agents/plugins/marketplace.json`
-
-You will still need the repository available at the plugin path the marketplace entry points to. If you want a stable user-global path, combine this with a symlink such as:
-
-```bash
-mkdir -p ~/plugins
-ln -sfn /absolute/path/to/codex-channels ~/plugins/codex-channels
-```
-
-Then rerun bootstrap with an explicit path:
-
-```bash
-node ./packages/cli/dist/index.js plugin-bootstrap --scope user --plugin-path ./plugins/codex-channels
-```
+This writes a workspace `.agents/plugins/marketplace.json` and a local
+`./plugins/codex-channels` plugin root for that repository only.
 
 ## Verify installation
 
 Check the generated marketplace file and plugin surface:
 
 ```bash
-cat .agents/plugins/marketplace.json
-cat .codex-plugin/plugin.json
-cat .mcp.json
+cat ~/.agents/plugins/marketplace.json
+ls -la ~/plugins/codex-channels
 ```
 
 ## Local runtime after install

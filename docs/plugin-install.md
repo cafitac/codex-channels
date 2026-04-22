@@ -9,7 +9,7 @@
 ```bash
 npm install
 npm run build
-npm run plugin:bootstrap
+npm run plugin:bootstrap:user
 ```
 
 
@@ -36,16 +36,18 @@ So the compiled CLI must exist before Codex can launch it.
 
 ## Automated bootstrap
 
-You can generate the marketplace entry with the CLI:
-
-```bash
-node packages/cli/dist/index.js plugin-bootstrap --scope workspace
-```
-
-For user-level installation:
+The default recommendation is user-level installation so Codex can see
+the plugin across workspaces:
 
 ```bash
 node packages/cli/dist/index.js plugin-bootstrap --scope user
+```
+
+Workspace-level installation is still available when you only want to
+test inside one repository:
+
+```bash
+node packages/cli/dist/index.js plugin-bootstrap --scope workspace
 ```
 
 The command also accepts:
@@ -56,7 +58,8 @@ Use those when you want to target a non-default marketplace location or plugin p
 
 ## Local workspace installation
 
-From the repository root, create a workspace-local plugin marketplace entry.
+From the repository root, create a workspace-local plugin marketplace entry
+only if you explicitly want the plugin limited to that repo.
 
 ### 1. Ensure the plugin root exists in the workspace
 
@@ -98,7 +101,7 @@ Restart Codex after updating the marketplace so the plugin manifest and MCP wiri
 
 ## User-level installation
 
-If you want the plugin available across workspaces, symlink the repository into a stable path and point the user-level marketplace entry to that path.
+If you want the plugin available across workspaces, use the user scope.
 
 Example:
 
