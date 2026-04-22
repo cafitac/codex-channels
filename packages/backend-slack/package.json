@@ -1,6 +1,6 @@
 {
   "name": "@cafitac/codex-channels-backend-slack",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./src/index.ts",
@@ -11,7 +11,7 @@
     }
   },
   "dependencies": {
-    "@cafitac/codex-channels-core": "0.1.8"
+    "@cafitac/codex-channels-core": "0.1.9"
   },
   "scripts": {
     "prepack": "tsc -p tsconfig.json"

@@ -180,6 +180,7 @@ npm run preflight:ci
 - [Codex install quickstart](./docs/codex-install-quickstart.md)
 - [Publishing](./docs/publishing.md)
 - [Release checklist](./docs/release-checklist.md)
+- [v0.1.9 release notes](./docs/releases/v0.1.9.md)
 
 ## License
 
