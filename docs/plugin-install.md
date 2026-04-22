@@ -43,8 +43,8 @@ the plugin across workspaces:
 node packages/cli/dist/index.js plugin-bootstrap
 ```
 
-When run interactively, `plugin-bootstrap` can ask whether you want
-user-level or workspace-local installation. User-level is the
+When run interactively, `plugin-bootstrap` shows an arrow-key menu
+for user-level vs workspace-local installation. User-level is the
 recommended default for a globally installed CLI.
 
 Workspace-level installation is still available when you only want to
@@ -59,6 +59,26 @@ The command also accepts:
 - `--marketplace-file <path>`
 
 Use those when you want to target a non-default marketplace location or plugin path.
+
+## Update checks and updater UX
+
+The CLI can check for newer published versions on the default
+interactive help screen. When an update is available, it presents these
+menu choices:
+
+- Update now
+- Skip
+- Skip until next version
+
+`Skip until next version` is stored in `~/.codex-channels/update-state.json`.
+You can re-run the updater explicitly with:
+
+```bash
+codex-channels self-update
+```
+
+If the command is running from a source checkout, it prints manual update
+steps instead of attempting an in-place npm upgrade.
 
 ## Local workspace installation
 
