@@ -4,6 +4,11 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.8 - 2026-04-22
+
+- Re-cut the published package set after the CLI install path remained broken on the previous version.
+- Keep the fixed GitHub Actions tarball publish flow and the first-run command surface intact.
+
 ## 0.1.7 - 2026-04-21
 
 - Publish packed tarballs as explicit file paths in GitHub Actions so npm does not misread them as package specs.
