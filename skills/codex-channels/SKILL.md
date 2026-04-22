@@ -40,6 +40,7 @@ If you want dedicated shortcut skills instead of subcommands, use:
 - `$channels-pending`
 - `$channels-reply-latest`
 - `$channels-watch`
+- `$channels-follow`
 
 ## Codex operator mode
 
@@ -64,6 +65,11 @@ codex-channels operator-status
 For the next obvious action, prefer:
 ```bash
 codex-channels next-step
+```
+
+For low-noise monitoring that can also resolve the next request when text is provided, use:
+```bash
+codex-channels follow --text staging
 ```
 
 For low-noise monitoring, prefer:
@@ -124,3 +130,7 @@ Additional watch guidance:
 - Watch mode should surface changes, not spam repeated no-change summaries.
 - Treat watch output as change events: runtime up/down, actionable interaction count changes, latest interaction changes, or next-step changes.
 - Each change event should carry a compact next-step hint so the user can act without another full status query.
+
+Additional follow guidance:
+- Use `follow --text ...` when you want low-noise monitoring plus the ability to resolve the next actionable request automatically once it appears.
+- If you omit `--text`, prefer plain `watch` so the command stays observation-only.

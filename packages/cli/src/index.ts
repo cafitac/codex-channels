@@ -252,6 +252,50 @@ async function runWatch(argv: string[]) {
   }
 }
 
+
+async function runFollow(argv: string[]) {
+  const intervalMs = Number(readFlag(argv, "--interval-ms", process.env.CODEX_CHANNELS_WATCH_INTERVAL_MS ?? "1000"));
+  const timeoutMs = Number(readFlag(argv, "--timeout-ms", process.env.CODEX_CHANNELS_WATCH_TIMEOUT_MS ?? "0"));
+  const textValue = readFlag(argv, "--text", "");
+  const startedAt = Date.now();
+  let lastSignature = "";
+  let previousPayload: OperatorSummary | null = null;
+  let resolvedInteractionId = "";
+
+  while (true) {
+    const payload = await buildOperatorSummary(argv);
+    const signature = createOperatorSummarySignature(payload);
+    if (!previousPayload || signature !== lastSignature) {
+      const changeSummary = summarizeOperatorChange(previousPayload, payload);
+      const primaryHint = payload.next[0] ?? null;
+      if (hasFlag(argv, "--json")) {
+        console.log(JSON.stringify({ change: changeSummary, hint: primaryHint, ...payload }, null, 2));
+      } else {
+        console.log(`[CODEX-CHANNELS] ${changeSummary}`);
+        if (primaryHint) console.log(`[CODEX-CHANNELS] hint: ${primaryHint}`);
+        console.log(formatOperatorSummary(payload));
+      }
+      lastSignature = signature;
+      previousPayload = payload;
+    }
+
+    if (textValue && payload.runtimeReachable && payload.latestInteraction && payload.latestInteraction.id !== resolvedInteractionId) {
+      if (!hasFlag(argv, "--json")) {
+        console.log(`[CODEX-CHANNELS] auto-resolving ${payload.latestInteraction.id} with provided text`);
+      }
+      await runReplyLatest(argv);
+      resolvedInteractionId = payload.latestInteraction.id;
+      return;
+    }
+
+    if (timeoutMs > 0 && Date.now() - startedAt >= timeoutMs) {
+      if (!hasFlag(argv, "--json")) console.log("follow ended");
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+}
+
 async function runInspect(argv: string[]) {
   const id = readFlag(argv, "--id", "");
   const statusFilter = readFlag(argv, "--status", "");
@@ -587,6 +631,20 @@ Preferred command:
 codex-channels doctor
 \`\`\`
 ` },
+    { name: "channels-follow", content: `---
+name: channels-follow
+description: "[CODEX-CHANNELS] Watch quietly and optionally resolve the next actionable request with provided text."
+---
+
+# channels-follow
+
+Use this skill when you want low-noise monitoring that can also close the next actionable request once it appears. Run the command first; if reply text is supplied, the command can resolve the next actionable interaction and exit.
+
+Preferred command:
+\`\`\`bash
+codex-channels follow --text staging
+\`\`\`
+` },
     { name: "channels-pending", content: `---
 name: channels-pending
 description: "[CODEX-CHANNELS] Show actionable interactions newest-first."
@@ -622,12 +680,14 @@ description: "[CODEX-CHANNELS] Follow runtime state quietly and only surface mea
 
 # channels-watch
 
-Use this skill when you want low-noise monitoring instead of repeatedly polling by hand. Run the command first and only summarize changes that actually happened.
+Use this skill when you want low-noise monitoring instead of repeatedly polling by hand. Run the command first and only summarize changes that actually happened. This should report the initial state once, then only emit another summary when runtime reachability, actionable count, latest interaction, or next-step guidance actually changes. Each emitted summary should also include a compact hint with the current best next command.
 
 Preferred command:
 \`\`\`bash
 codex-channels watch
 \`\`\`
+
+If you want the watch loop to resolve the next actionable request once it appears, use \`channels-follow\` / \`codex-channels follow --text ...\` instead.
 ` },
     { name: "codex-channels", content: `---
 name: codex-channels
@@ -671,6 +731,7 @@ If you want dedicated shortcut skills instead of subcommands, use:
 - \`$channels-pending\`
 - \`$channels-reply-latest\`
 - \`$channels-watch\`
+- \`$channels-follow\`
 
 ## Codex operator mode
 
@@ -695,6 +756,11 @@ codex-channels operator-status
 For the next obvious action, prefer:
 \`\`\`bash
 codex-channels next-step
+\`\`\`
+
+For low-noise monitoring that can also resolve the next request when text is provided, use:
+\`\`\`bash
+codex-channels follow --text staging
 \`\`\`
 
 For low-noise monitoring, prefer:
@@ -753,6 +819,12 @@ codex-channels reply --id <interaction-id> --text staging
 Additional watch guidance:
 - Use \`watch\` only when you actually want background-style monitoring; default flows should stay quiet.
 - Watch mode should surface changes, not spam repeated no-change summaries.
+- Treat watch output as change events: runtime up/down, actionable interaction count changes, latest interaction changes, or next-step changes.
+- Each change event should carry a compact next-step hint so the user can act without another full status query.
+
+Additional follow guidance:
+- Use \`follow --text ...\` when you want low-noise monitoring plus the ability to resolve the next actionable request automatically once it appears.
+- If you omit \`--text\`, prefer plain \`watch\` so the command stays observation-only.
 ` },
     { name: "next-step", content: `---
 name: next-step
@@ -1146,6 +1218,11 @@ async function main(argv: string[]) {
     return;
   }
 
+  if (command === "follow") {
+    await runFollow(argv);
+    return;
+  }
+
   if (command === "next-step") {
     await runNextStep(argv);
     return;
@@ -1186,7 +1263,7 @@ async function main(argv: string[]) {
     return;
   }
 
-  console.log(`codex-channels\n\nCommands:\n  doctor            Check the local runtime and show the next useful commands\n  demo              Start a demo interaction and wait for a reply\n  inspect           Read the local interaction state file and list current interactions\n  operator-status   Summarize runtime reachability, pending work, and the next best operator step\n  watch             Follow runtime state quietly and only print when something changes\n  next-step         Run the next recommended operator action when it is obvious and safe\n  pending           Show the newest pending or delivered interactions first\n  reply             Reply to one interaction on the running local runtime\n  reply-latest      Reply to the newest pending interaction without copying its id\n  self-update       Check for a newer published CLI version and install it\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Generate a Codex plugin wrapper and register it in the marketplace\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --id <interaction-id>      Target interaction for inspect/reply\n  --status <status>          Filter inspect output by interaction status\n  --text <value>             Reply value for reply/submit flows\n  --accept                   Send an accept reply\n  --decline                  Send a decline reply\n  --cancel                   Cancel the interaction\n  --timeout-ms <ms>          Bridge or demo interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: user | workspace (prompts with an arrow-key menu when interactive; defaults to user otherwise)\n  --plugin-path <path>       explicit plugin root to generate and register\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --no-update-check          Skip automatic update prompts for this run\n  --yes                      Apply self-update without prompting\n  --json                     Emit JSON output for inspect\n  --quiet                    Suppress bridge startup metadata on stderr`);
+  console.log(`codex-channels\n\nCommands:\n  doctor            Check the local runtime and show the next useful commands\n  demo              Start a demo interaction and wait for a reply\n  inspect           Read the local interaction state file and list current interactions\n  operator-status   Summarize runtime reachability, pending work, and the next best operator step\n  watch             Follow runtime state quietly and only print when something changes\n  follow            Watch quietly and resolve the next actionable request when text is provided\n  next-step         Run the next recommended operator action when it is obvious and safe\n  pending           Show the newest pending or delivered interactions first\n  reply             Reply to one interaction on the running local runtime\n  reply-latest      Reply to the newest pending interaction without copying its id\n  self-update       Check for a newer published CLI version and install it\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Generate a Codex plugin wrapper and register it in the marketplace\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --id <interaction-id>      Target interaction for inspect/reply\n  --status <status>          Filter inspect output by interaction status\n  --text <value>             Reply value for reply/submit flows\n  --accept                   Send an accept reply\n  --decline                  Send a decline reply\n  --cancel                   Cancel the interaction\n  --timeout-ms <ms>          Bridge or demo interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: user | workspace (prompts with an arrow-key menu when interactive; defaults to user otherwise)\n  --plugin-path <path>       explicit plugin root to generate and register\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --no-update-check          Skip automatic update prompts for this run\n  --yes                      Apply self-update without prompting\n  --json                     Emit JSON output for inspect\n  --quiet                    Suppress bridge startup metadata on stderr`);
 }
 
 main(process.argv).catch((error) => {

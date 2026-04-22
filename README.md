@@ -40,7 +40,7 @@ codex-channels plugin-bootstrap
 
 This now installs a Codex-visible `codex-channels` skill set into the
 canonical Codex skill root (including shortcut skills such as
-`operator-status`, `next-step`, and `channels-watch`) as well as generating the plugin
+`operator-status`, `next-step`, `channels-watch`, and `channels-follow`) as well as generating the plugin
 wrapper and MCP surface. Then restart Codex so it can reload both surfaces.
 
 If you run `plugin-bootstrap` in an interactive shell, it now uses an
@@ -295,3 +295,5 @@ codex-channels watch
 It prints the initial summary once and then only prints again when runtime reachability, actionable count, the latest actionable interaction, or the next-step recommendation actually changes.
 
 Watch mode now includes a compact `hint:` line with the current best next command whenever it emits a summary.
+
+When you want low-noise monitoring plus automatic resolution of the next request once it appears, use `codex-channels follow --text ...`.

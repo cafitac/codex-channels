@@ -11,3 +11,5 @@ Preferred command:
 ```bash
 codex-channels watch
 ```
+
+If you want the watch loop to resolve the next actionable request once it appears, use `channels-follow` / `codex-channels follow --text ...` instead.

@@ -117,3 +117,9 @@ codex-channels watch
 This prints the first summary immediately and then only prints again when the operator state actually changes. The default is human-readable change-only output; use `--json` when another tool needs the machine-readable payload.
 
 The watch output includes a compact `hint:` line so you can act on the newest change without asking for another summary first.
+
+When you want the monitor to resolve the next actionable request as soon as it appears, use:
+
+```bash
+codex-channels follow --text staging
+```

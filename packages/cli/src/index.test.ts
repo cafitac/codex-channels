@@ -248,6 +248,53 @@ test("bridge-spawn boots the local runtime and reports startup metadata", async 
 
 
 
+
+test("follow resolves the next actionable interaction when text is provided", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-follow-"));
+  const stateFile = join(dir, "state.json");
+  const port = await getFreePort();
+
+  await writeFile(stateFile, JSON.stringify({
+    interactions: [{
+      id: "follow-request",
+      kind: "user_input_request",
+      source: { type: "system", name: "test" },
+      payload: { message: "Need an answer" },
+      createdAt: "2026-01-01T00:00:01.000Z",
+      status: "pending",
+    }]
+  }), "utf8");
+
+  const serverChild = spawn(process.execPath, [cliEntry, "serve", "--port", String(port), "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let serverStdout = "";
+  serverChild.stdout.on("data", (chunk) => {
+    serverStdout += chunk.toString();
+  });
+
+  try {
+    await waitFor(() => serverStdout.includes('"ok": true') || serverStdout.includes('"ok":true'), 2000, () => `serve startup timeout: ${serverStdout}`);
+
+    const child = spawn(process.execPath, [cliEntry, "follow", "--state-file", stateFile, "--port", String(port), "--text", "staging", "--timeout-ms", "50"], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+    assert.equal(exitCode, 0);
+    assert.match(stdout, /auto-resolving follow-request/);
+  } finally {
+    serverChild.kill();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("watch reports the first summary once and ends quietly when nothing changes", async () => {
   const dir = await mkdtemp(join(tmpdir(), "codex-channels-watch-"));
   const stateFile = join(dir, "state.json");
@@ -594,9 +641,11 @@ test("plugin-bootstrap writes a workspace marketplace entry", async () => {
   const workspaceSkill = join(dir, ".codex", "skills", "codex-channels", "SKILL.md");
   const operatorStatusSkill = join(dir, ".codex", "skills", "operator-status", "SKILL.md");
   const watchSkill = join(dir, ".codex", "skills", "channels-watch", "SKILL.md");
+  const followSkill = join(dir, ".codex", "skills", "channels-follow", "SKILL.md");
   assert.equal(Boolean((await readFile(workspaceSkill, "utf8")).length), true);
   assert.equal(Boolean((await readFile(operatorStatusSkill, "utf8")).length), true);
   assert.equal(Boolean((await readFile(watchSkill, "utf8")).length), true);
+  assert.equal(Boolean((await readFile(followSkill, "utf8")).length), true);
 
   await rm(dir, { recursive: true, force: true });
 });
@@ -628,6 +677,7 @@ test("plugin-bootstrap defaults to user scope and generates a plugin root plus c
   assert.equal(Array.isArray(payload.installedSkills), true);
   assert.ok(payload.installedSkills.includes(join(codexHome, "skills", "operator-status")));
   assert.ok(payload.installedSkills.includes(join(codexHome, "skills", "channels-watch")));
+  assert.ok(payload.installedSkills.includes(join(codexHome, "skills", "channels-follow")));
 
   const marketplace = JSON.parse(await readFile(userMarketplace, "utf8")) as { plugins: Array<{ name: string; source: { path: string } }> };
   assert.equal(marketplace.plugins[0]?.name, "codex-channels");
@@ -647,6 +697,7 @@ test("plugin-bootstrap defaults to user scope and generates a plugin root plus c
   assert.match(canonicalContent, /reply-latest/);
   assert.match(canonicalContent, /next-step/);
   assert.match(canonicalContent, /channels-watch/);
+  assert.match(canonicalContent, /channels-follow/);
   assert.match(canonicalContent, /Execution-first rule/);
   assert.match(operatorStatusContent, /\[CODEX-CHANNELS\]/);
   assert.match(canonicalContent, /\$codex-channels doctor/);

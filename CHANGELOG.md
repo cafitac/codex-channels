@@ -4,6 +4,7 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+- Add a low-noise `follow` mode that can resolve the next actionable interaction once it appears when reply text is provided.
 ## 0.1.23 - 2026-04-22
 
 - Improve `watch` with change-specific next-step hints so low-noise monitoring stays actionable.
