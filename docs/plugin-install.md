@@ -19,6 +19,8 @@ npm run plugin:bootstrap:user
 
 ## Important prerequisites
 
+The Codex-visible skill is installed into the canonical Codex skill root during bootstrap. The plugin wrapper remains a secondary packaging layer for MCP/plugin experiments.
+
 The plugin wrapper assumes you already built the local CLI:
 
 ```bash
