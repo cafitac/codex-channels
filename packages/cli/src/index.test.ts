@@ -145,6 +145,41 @@ test("plugin-bootstrap writes a workspace marketplace entry", async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
+test("plugin-bootstrap defaults to user scope and generates a plugin root", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-user-plugin-"));
+  const userHome = join(dir, "home");
+  const userPlugins = join(userHome, "plugins");
+  const userMarketplace = join(userHome, ".agents", "plugins", "marketplace.json");
+
+  const child = spawn(process.execPath, [cliEntry, "plugin-bootstrap"], {
+    cwd: dir,
+    env: { ...process.env, HOME: userHome },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  const payload = JSON.parse(stdout.trim());
+  assert.equal(payload.scope, "user");
+  assert.equal(payload.marketplaceFile, userMarketplace);
+
+  const marketplace = JSON.parse(await readFile(userMarketplace, "utf8")) as { plugins: Array<{ name: string; source: { path: string } }> };
+  assert.equal(marketplace.plugins[0]?.name, "codex-channels");
+  assert.equal(marketplace.plugins[0]?.source.path, "./plugins/codex-channels");
+
+  const pluginRoot = join(userPlugins, "codex-channels");
+  assert.equal(Boolean((await readFile(join(pluginRoot, ".codex-plugin", "plugin.json"), "utf8")).length), true);
+  assert.equal(Boolean((await readFile(join(pluginRoot, ".mcp.json"), "utf8")).length), true);
+  assert.equal(Boolean((await readFile(join(pluginRoot, "skills", "codex-channels", "SKILL.md"), "utf8")).length), true);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
 test("help output keeps first-run commands ahead of lower-level bridge commands", async () => {
   const child = spawn(process.execPath, [cliEntry], {
     stdio: ["ignore", "pipe", "pipe"],

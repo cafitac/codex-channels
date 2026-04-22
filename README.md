@@ -35,16 +35,20 @@ to make **Codex-side human interaction** easier.
 
 ```bash
 npm install -g @cafitac/codex-channels
-codex-channels plugin-bootstrap --scope workspace
+codex-channels plugin-bootstrap
 ```
 
-Then restart Codex so it can rediscover the plugin wrapper and MCP
-surface for this workspace.
+Then restart Codex so it can rediscover the user-level plugin wrapper
+and MCP surface.
+
+If you run `plugin-bootstrap` in an interactive shell, it can ask
+whether you want user-level or workspace-local installation. For most
+global installs, user-level is the recommended default.
 
 ### Try it inside Codex first
 
 After bootstrap, Codex should be able to discover the `codex-channels`
-plugin/skill surface for the current workspace.
+plugin/skill surface.
 
 If you want to confirm the runtime manually first, run:
 
@@ -151,10 +155,10 @@ docs/
 After:
 
 ```bash
-codex-channels plugin-bootstrap --scope workspace
+codex-channels plugin-bootstrap
 ```
 
-restart Codex in that workspace.
+restart Codex.
 
 Then inside Codex, treat `codex-channels` as the interaction layer that
 the plugin/bridge can use for:
