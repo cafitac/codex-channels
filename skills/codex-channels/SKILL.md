@@ -20,6 +20,8 @@ Examples:
 - `$codex-channels doctor` -> run `codex-channels doctor`, then summarize the result.
 - `$codex-channels demo` -> run `codex-channels demo`; if port binding needs approval, request it and continue.
 - `$codex-channels pending` -> run `codex-channels pending` first.
+- `$codex-channels operator-status` -> run the summary first and use it to choose the next step.
+- `$codex-channels next-step` -> run the obvious next operator action when it is safe to do so.
 - `$codex-channels reply-latest --text ...` -> run the command first, then summarize what was resolved.
 - `$codex-channels reply --id ... --text ...` -> run the targeted reply first.
 
@@ -62,6 +64,7 @@ codex-channels plugin-bootstrap
 ### 2. Check the current state
 ```bash
 codex-channels operator-status
+codex-channels next-step
 codex-channels doctor
 codex-channels pending
 ```
@@ -89,6 +92,8 @@ codex-channels reply --id <interaction-id> --text staging
 ## Common commands
 ```bash
 codex-channels plugin-bootstrap
+codex-channels operator-status
+codex-channels next-step
 codex-channels doctor
 codex-channels demo
 codex-channels pending
@@ -104,3 +109,8 @@ Guidance:
 - Use `reply-latest` for the common local loop so you do not have to copy interaction ids by hand.
 - Use `demo`, `pending`, and `reply-latest` to verify the end-to-end interaction loop quickly.
 - In Codex-guided operator flows, treat `pending` as the default follow-up after `doctor` or `demo`.
+
+
+Additional guidance:
+- Use `operator-status` when you want Codex to understand the current situation before acting.
+- Use `next-step` when the intent is to keep the local loop moving with the least shell ceremony.

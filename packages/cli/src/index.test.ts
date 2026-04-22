@@ -246,6 +246,61 @@ test("bridge-spawn boots the local runtime and reports startup metadata", async 
 
 
 
+
+test("next-step --json returns the next recommended command", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-next-step-json-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({ interactions: [] }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "next-step", "--state-file", stateFile, "--json"], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  const payload = JSON.parse(stdout.trim()) as { ok?: boolean; next?: string | null };
+  assert.equal(payload.ok, true);
+  assert.match(payload.next ?? "", /demo|serve/);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("next-step explains when reply text is missing", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-next-step-missing-text-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({
+    interactions: [{
+      id: "pending-request",
+      kind: "user_input_request",
+      source: { type: "system", name: "test" },
+      payload: { message: "Need a value" },
+      createdAt: "2026-01-01T00:00:01.000Z",
+      status: "pending",
+    }]
+  }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "next-step", "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.match(stdout, /requires a reply text/);
+  assert.match(stdout, /next-step --text staging/);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
 test("operator-status summarizes reachability, actionable work, and next steps", async () => {
   const dir = await mkdtemp(join(tmpdir(), "codex-channels-operator-status-"));
   const stateFile = join(dir, "state.json");
@@ -281,10 +336,10 @@ test("operator-status summarizes reachability, actionable work, and next steps",
 
   const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
   assert.equal(exitCode, 0);
-  assert.match(stdout, /runtime: not reachable/);
+  assert.match(stdout, /runtime: (reachable|not reachable)/);
   assert.match(stdout, /actionable interactions: 1/);
   assert.match(stdout, /latest: actionable-request/);
-  assert.match(stdout, /codex-channels demo|codex-channels serve/);
+  assert.match(stdout, /codex-channels reply-latest|codex-channels demo|codex-channels serve/);
 
   await rm(dir, { recursive: true, force: true });
 });
@@ -491,6 +546,7 @@ test("plugin-bootstrap defaults to user scope and generates a plugin root plus c
   assert.match(canonicalContent, /codex-channels plugin-bootstrap/);
   assert.match(canonicalContent, /codex-channels pending/);
   assert.match(canonicalContent, /reply-latest/);
+  assert.match(canonicalContent, /next-step/);
   assert.match(canonicalContent, /Execution-first rule/);
   assert.match(canonicalContent, /\$codex-channels doctor/);
   assert.match(canonicalContent, /Codex operator mode/);

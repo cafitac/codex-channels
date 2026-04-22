@@ -56,6 +56,7 @@ If you want to confirm the runtime manually first, run:
 
 ```bash
 codex-channels operator-status
+codex-channels next-step
 codex-channels doctor
 codex-channels pending
 codex-channels demo
