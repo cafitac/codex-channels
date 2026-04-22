@@ -487,10 +487,16 @@ type MarketplaceFile = {
   plugins: MarketplacePlugin[];
 };
 
-function buildCodexChannelsSkillContent() {
-  return `---
+type SkillDefinition = {
+  name: string;
+  content: string;
+};
+
+function buildCodexChannelsSkillDefinitions(): SkillDefinition[] {
+  return [
+    { name: "codex-channels", content: `---
 name: codex-channels
-description: Set up or operate the local codex-channels runtime for Codex-first interaction routing.
+description: [CODEX-CHANNELS] Set up or operate the local codex-channels runtime for Codex-first interaction routing.
 ---
 
 # codex-channels
@@ -520,6 +526,16 @@ Only stay explanatory when:
 - a command would be destructive or materially ambiguous
 - missing arguments prevent a safe execution-first interpretation
 
+## Fastest shortcuts
+
+If you want dedicated shortcut skills instead of subcommands, use:
+- \`$operator-status\`
+- \`$next-step\`
+- \`$channels-doctor\`
+- \`$channels-demo\`
+- \`$channels-pending\`
+- \`$channels-reply-latest\`
+
 ## Codex operator mode
 
 When invoked from inside Codex, prefer **doing the next operator step** over only restating documentation.
@@ -539,10 +555,10 @@ For a single run-ready summary, prefer:
 codex-channels operator-status
 \`\`\`
 
-This tells you:
-- whether the runtime is reachable
-- whether any actionable requests are waiting
-- what the next best operator step is
+For the next obvious action, prefer:
+\`\`\`bash
+codex-channels next-step
+\`\`\`
 
 ## Guided operator flow
 
@@ -558,8 +574,6 @@ codex-channels next-step
 codex-channels doctor
 codex-channels pending
 \`\`\`
-
-If the runtime is already up, prefer \`pending\` first because it shows only actionable requests.
 
 ### 3. Generate a real interaction
 \`\`\`bash
@@ -591,35 +605,120 @@ codex-channels inspect
 codex-channels reply-latest --text staging
 codex-channels reply --id <interaction-id> --text staging
 \`\`\`
+` },
+    { name: "channels-demo", content: `---
+name: channels-demo
+description: [CODEX-CHANNELS] Start a local demo interaction and guide the pending/reply loop.
+---
 
-Guidance:
-- Prefer the local runtime first unless you explicitly need a remote channel backend.
-- Use \`plugin-bootstrap\` to install the Codex-visible skill plus the plugin wrapper artifacts.
-- Use \`pending\` before \`inspect\` when you only want the actionable requests.
-- Use \`reply-latest\` for the common local loop so you do not have to copy interaction ids by hand.
-- Use \`demo\`, \`pending\`, and \`reply-latest\` to verify the end-to-end interaction loop quickly.
-- In Codex-guided operator flows, treat \`pending\` as the default follow-up after \`doctor\` or \`demo\`.
+# channels-demo
 
+Use this skill when you want to create a real interaction. Run the command first, handle approval/escalation if port binding is required, then guide the user toward pending and reply-latest.
 
-Additional guidance:
-- Use \`operator-status\` when you want Codex to understand the current situation before acting.
-- Use \`next-step\` when the intent is to keep the local loop moving with the least shell ceremony.
-`;
+Preferred command:
+\`\`\`bash
+codex-channels demo
+\`\`\`
+` },
+    { name: "channels-doctor", content: `---
+name: channels-doctor
+description: [CODEX-CHANNELS] Check runtime health and summarize the next useful commands.
+---
+
+# channels-doctor
+
+Use this skill when you want a structured health check for the local runtime. Run the command first, then summarize reachability, interaction count, and the next suggested commands.
+
+Preferred command:
+\`\`\`bash
+codex-channels doctor
+\`\`\`
+` },
+    { name: "channels-pending", content: `---
+name: channels-pending
+description: [CODEX-CHANNELS] Show actionable interactions newest-first.
+---
+
+# channels-pending
+
+Use this skill when you want the actionable queue only. Run the command first, then summarize the latest pending work.
+
+Preferred command:
+\`\`\`bash
+codex-channels pending
+\`\`\`
+` },
+    { name: "channels-reply-latest", content: `---
+name: channels-reply-latest
+description: [CODEX-CHANNELS] Reply to the newest actionable interaction with less shell ceremony.
+---
+
+# channels-reply-latest
+
+Use this skill when the user wants to answer the newest request. If reply text is provided, run the command first. If not, ask for the text or explain the exact command to run.
+
+Preferred command:
+\`\`\`bash
+codex-channels reply-latest --text staging
+\`\`\`
+` },
+    { name: "next-step", content: `---
+name: next-step
+description: [CODEX-CHANNELS] Execute the next obvious local operator action when it is safe and unambiguous.
+---
+
+# next-step
+
+Use this skill when you want Codex to keep the local loop moving. Run the command first. If it needs reply text, ask for the missing text or tell the user the exact next-step command to rerun.
+
+Preferred command:
+\`\`\`bash
+codex-channels next-step
+\`\`\`
+` },
+    { name: "operator-status", content: `---
+name: operator-status
+description: [CODEX-CHANNELS] Summarize runtime reachability, pending work, and the next best operator step.
+---
+
+# operator-status
+
+Use this skill when you want the fastest high-signal status check before acting. Run the command first, then summarize:
+- whether the runtime is reachable
+- how many actionable requests are waiting
+- the latest actionable interaction
+- the next best operator step
+
+Preferred command:
+\`\`\`bash
+codex-channels operator-status
+\`\`\`
+` },
+  ];
 }
 
-function resolveCanonicalSkillDir(scope: string) {
+function buildCodexChannelsSkillContent() {
+  return buildCodexChannelsSkillDefinitions()[0]!.content;
+}
+
+function resolveCanonicalSkillsRoot(scope: string) {
   if (scope === "workspace") {
-    return resolve(".codex", "skills", "codex-channels");
+    return resolve(".codex", "skills");
   }
   const codexHome = process.env.CODEX_HOME?.trim() || join(homedir(), ".codex");
-  return resolve(codexHome, "skills", "codex-channels");
+  return resolve(codexHome, "skills");
 }
 
-async function installCanonicalSkill(scope: string) {
-  const skillDir = resolveCanonicalSkillDir(scope);
-  await mkdir(skillDir, { recursive: true });
-  await writeFile(resolve(skillDir, "SKILL.md"), buildCodexChannelsSkillContent(), "utf8");
-  return skillDir;
+async function installCanonicalSkills(scope: string) {
+  const skillsRoot = resolveCanonicalSkillsRoot(scope);
+  const installed: string[] = [];
+  for (const skill of buildCodexChannelsSkillDefinitions()) {
+    const skillDir = resolve(skillsRoot, skill.name);
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(resolve(skillDir, "SKILL.md"), skill.content, "utf8");
+    installed.push(skillDir);
+  }
+  return installed;
 }
 
 async function writeGeneratedPluginRoot(targetDir: string, cliEntry: string, runtime: { host: string; port: string; stateFile: string }) {
@@ -735,7 +834,7 @@ async function resolveBootstrapScope(argv: string[]) {
 
 async function runPluginBootstrap(argv: string[]) {
   const scope = await resolveBootstrapScope(argv);
-  const installedSkillDir = await installCanonicalSkill(scope);
+  const installedSkillDirs = await installCanonicalSkills(scope);
   const requestedPluginPath = argv.includes("--plugin-path") ? readFlag(argv, "--plugin-path", "") : null;
   const cliEntry = resolve(process.argv[1] ?? "./dist/index.js");
   const pluginPath = await ensurePluginSourcePath(scope, requestedPluginPath, cliEntry, {
@@ -778,7 +877,8 @@ async function runPluginBootstrap(argv: string[]) {
     marketplaceFile,
     pluginPath,
     pluginCount: marketplace.plugins.length,
-    skillPath: installedSkillDir,
+    skillPath: installedSkillDirs[0],
+    installedSkills: installedSkillDirs,
   }, null, 2));
 }
 

@@ -1,6 +1,6 @@
 ---
 name: codex-channels
-description: Set up or operate the local codex-channels runtime for Codex-first interaction routing.
+description: [CODEX-CHANNELS] Set up or operate the local codex-channels runtime for Codex-first interaction routing.
 ---
 
 # codex-channels
@@ -30,6 +30,16 @@ Only stay explanatory when:
 - a command would be destructive or materially ambiguous
 - missing arguments prevent a safe execution-first interpretation
 
+## Fastest shortcuts
+
+If you want dedicated shortcut skills instead of subcommands, use:
+- `$operator-status`
+- `$next-step`
+- `$channels-doctor`
+- `$channels-demo`
+- `$channels-pending`
+- `$channels-reply-latest`
+
 ## Codex operator mode
 
 When invoked from inside Codex, prefer **doing the next operator step** over only restating documentation.
@@ -49,10 +59,10 @@ For a single run-ready summary, prefer:
 codex-channels operator-status
 ```
 
-This tells you:
-- whether the runtime is reachable
-- whether any actionable requests are waiting
-- what the next best operator step is
+For the next obvious action, prefer:
+```bash
+codex-channels next-step
+```
 
 ## Guided operator flow
 
@@ -68,8 +78,6 @@ codex-channels next-step
 codex-channels doctor
 codex-channels pending
 ```
-
-If the runtime is already up, prefer `pending` first because it shows only actionable requests.
 
 ### 3. Generate a real interaction
 ```bash
@@ -101,16 +109,3 @@ codex-channels inspect
 codex-channels reply-latest --text staging
 codex-channels reply --id <interaction-id> --text staging
 ```
-
-Guidance:
-- Prefer the local runtime first unless you explicitly need a remote channel backend.
-- Use `plugin-bootstrap` to install the Codex-visible skill plus the plugin wrapper artifacts.
-- Use `pending` before `inspect` when you only want the actionable requests.
-- Use `reply-latest` for the common local loop so you do not have to copy interaction ids by hand.
-- Use `demo`, `pending`, and `reply-latest` to verify the end-to-end interaction loop quickly.
-- In Codex-guided operator flows, treat `pending` as the default follow-up after `doctor` or `demo`.
-
-
-Additional guidance:
-- Use `operator-status` when you want Codex to understand the current situation before acting.
-- Use `next-step` when the intent is to keep the local loop moving with the least shell ceremony.

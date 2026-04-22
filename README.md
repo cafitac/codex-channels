@@ -38,9 +38,10 @@ npm install -g @cafitac/codex-channels
 codex-channels plugin-bootstrap
 ```
 
-This now installs a Codex-visible `codex-channels` skill into the
-canonical Codex skill root as well as generating the plugin wrapper
-and MCP surface. Then restart Codex so it can reload both surfaces.
+This now installs a Codex-visible `codex-channels` skill set into the
+canonical Codex skill root (including shortcut skills such as
+`operator-status` and `next-step`) as well as generating the plugin
+wrapper and MCP surface. Then restart Codex so it can reload both surfaces.
 
 If you run `plugin-bootstrap` in an interactive shell, it now uses an
 arrow-key menu so you can choose between user-level and workspace-local

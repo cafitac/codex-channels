@@ -184,3 +184,5 @@ The local runtime loop now includes two convenience commands for Codex-guided us
 Use `codex-channels operator-status --json` when you want the same summary in a machine-readable shape.
 
 - `codex-channels next-step` — execute the next obvious operator action when the runtime state makes it safe and unambiguous
+
+The canonical skill install now includes shortcut skills such as `operator-status`, `next-step`, `channels-doctor`, `channels-demo`, `channels-pending`, and `channels-reply-latest` so Codex users can discover the most important actions without remembering subcommand arguments.

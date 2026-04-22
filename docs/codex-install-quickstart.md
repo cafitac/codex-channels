@@ -13,7 +13,7 @@ codex-channels plugin-bootstrap
 
 What this does:
 - installs the CLI globally
-- installs `~/.codex/skills/codex-channels/SKILL.md` (or `$CODEX_HOME/skills/...`) so Codex CLI can see the skill directly
+- installs `~/.codex/skills/...` (or `$CODEX_HOME/skills/...`) so Codex CLI can see the main `codex-channels` skill plus shortcut skills like `operator-status` and `next-step` directly
 - writes `~/.agents/plugins/marketplace.json` for the legacy/local plugin wrapper path
 - generates a user-level `~/plugins/codex-channels` plugin root
 

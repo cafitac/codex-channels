@@ -502,7 +502,9 @@ test("plugin-bootstrap writes a workspace marketplace entry", async () => {
   assert.equal(marketplace.plugins[0]?.source.path, ".");
 
   const workspaceSkill = join(dir, ".codex", "skills", "codex-channels", "SKILL.md");
+  const operatorStatusSkill = join(dir, ".codex", "skills", "operator-status", "SKILL.md");
   assert.equal(Boolean((await readFile(workspaceSkill, "utf8")).length), true);
+  assert.equal(Boolean((await readFile(operatorStatusSkill, "utf8")).length), true);
 
   await rm(dir, { recursive: true, force: true });
 });
@@ -531,6 +533,8 @@ test("plugin-bootstrap defaults to user scope and generates a plugin root plus c
   assert.equal(payload.scope, "user");
   assert.equal(payload.marketplaceFile, userMarketplace);
   assert.equal(payload.skillPath, join(codexHome, "skills", "codex-channels"));
+  assert.equal(Array.isArray(payload.installedSkills), true);
+  assert.ok(payload.installedSkills.includes(join(codexHome, "skills", "operator-status")));
 
   const marketplace = JSON.parse(await readFile(userMarketplace, "utf8")) as { plugins: Array<{ name: string; source: { path: string } }> };
   assert.equal(marketplace.plugins[0]?.name, "codex-channels");
@@ -542,12 +546,15 @@ test("plugin-bootstrap defaults to user scope and generates a plugin root plus c
   assert.equal(Boolean((await readFile(join(pluginRoot, "skills", "codex-channels", "SKILL.md"), "utf8")).length), true);
 
   const canonicalSkill = join(codexHome, "skills", "codex-channels", "SKILL.md");
+  const operatorStatusCanonical = join(codexHome, "skills", "operator-status", "SKILL.md");
   const canonicalContent = await readFile(canonicalSkill, "utf8");
+  const operatorStatusContent = await readFile(operatorStatusCanonical, "utf8");
   assert.match(canonicalContent, /codex-channels plugin-bootstrap/);
   assert.match(canonicalContent, /codex-channels pending/);
   assert.match(canonicalContent, /reply-latest/);
   assert.match(canonicalContent, /next-step/);
   assert.match(canonicalContent, /Execution-first rule/);
+  assert.match(operatorStatusContent, /\[CODEX-CHANNELS\]/);
   assert.match(canonicalContent, /\$codex-channels doctor/);
   assert.match(canonicalContent, /Codex operator mode/);
   assert.match(canonicalContent, /If the user asks whether the runtime is ready/);
