@@ -4,6 +4,10 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.17 - 2026-04-22
+
+- Make `operator-status` human-readable by default, with `--json` as the machine-readable fallback.
+
 - Make `operator-status` human-readable by default, with `--json` as the machine-readable fallback.
 ## 0.1.16 - 2026-04-22
 
