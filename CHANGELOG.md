@@ -4,6 +4,7 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+- Prefer `pending` and `reply-latest` in doctor/demo guidance so the Codex-guided operator flow defaults to actionable commands first.
 ## 0.1.13 - 2026-04-22
 
 - Add guided local-loop commands (`pending`, `reply-latest`) so Codex sessions can operate the local interaction flow with less shell ceremony.

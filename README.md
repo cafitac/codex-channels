@@ -56,6 +56,7 @@ If you want to confirm the runtime manually first, run:
 
 ```bash
 codex-channels doctor
+codex-channels pending
 codex-channels demo
 ```
 
@@ -93,9 +94,9 @@ codex-channels reply-latest --text staging
 Typical flow:
 
 1. run `codex-channels demo`
-2. in another terminal, run `codex-channels inspect`
-3. copy the interaction id
-4. run `codex-channels reply --id <that-id> --text staging`
+2. in another terminal, run `codex-channels pending`
+3. reply with `codex-channels reply-latest --text staging`
+4. if needed, fall back to `codex-channels inspect` + `reply --id ...`
 5. watch the original `demo` command finish with the resolved response
 
 Example:

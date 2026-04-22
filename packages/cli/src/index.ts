@@ -245,7 +245,7 @@ async function runDoctor(argv: string[]) {
     },
     next: runtimeReachable
       ? [
-          "codex-channels inspect",
+          "codex-channels pending",
           "codex-channels demo",
         ]
       : [
@@ -277,8 +277,9 @@ async function runDemo(argv: string[]) {
   console.log(`codex-channels demo is running at ${info.url}`);
   console.log(`interaction: ${interaction.id}`);
   console.log("Try in another terminal:");
-  console.log(`  codex-channels inspect --state-file ${persistence.filePath}`);
-  console.log(`  codex-channels reply --id ${interaction.id} --text staging --port ${info.port}`);
+  console.log(`  codex-channels pending --state-file ${persistence.filePath}`);
+  console.log(`  codex-channels reply-latest --state-file ${persistence.filePath} --text staging --port ${info.port}`);
+  console.log(`  # or targeted reply: codex-channels reply --id ${interaction.id} --text staging --port ${info.port}`);
 
   try {
     const response = await runtime.publishAndWait(interaction, timeoutMs);

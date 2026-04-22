@@ -25,6 +25,8 @@ codex-channels doctor
 codex-channels pending
 ```
 
+If the runtime is already up, prefer `pending` first because it shows only actionable requests.
+
 ### 3. Generate a real interaction
 ```bash
 codex-channels demo
@@ -60,3 +62,4 @@ Guidance:
 - Use `pending` before `inspect` when you only want the actionable requests.
 - Use `reply-latest` for the common local loop so you do not have to copy interaction ids by hand.
 - Use `demo`, `pending`, and `reply-latest` to verify the end-to-end interaction loop quickly.
+- In Codex-guided operator flows, treat `pending` as the default follow-up after `doctor` or `demo`.

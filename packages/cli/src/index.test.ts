@@ -561,7 +561,7 @@ test("doctor reports runtime reachability and next steps", async () => {
   const payload = JSON.parse(stdout.trim());
   assert.equal(payload.runtime.reachable, false);
   assert.equal(payload.interactionCount, 0);
-  assert.match(payload.next[0], /demo/);
+  assert.match(payload.next[0], /pending|demo/);
 
   await rm(dir, { recursive: true, force: true });
 });
@@ -672,6 +672,7 @@ test("demo publishes an interaction and returns the resolved response", async ()
     await waitFor(() => stdout.includes('"ok": true') || stdout.includes('"ok":true'), 2000, () => `demo did not resolve: ${stdout}`);
     assert.match(stdout, /codex-channels demo is running/);
     assert.match(stdout, /interaction:/);
+    assert.match(stdout, /reply-latest/);
   } finally {
     child.kill();
     await rm(dir, { recursive: true, force: true });
