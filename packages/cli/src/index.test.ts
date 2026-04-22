@@ -421,6 +421,8 @@ test("plugin-bootstrap defaults to user scope and generates a plugin root plus c
   assert.match(canonicalContent, /codex-channels plugin-bootstrap/);
   assert.match(canonicalContent, /codex-channels pending/);
   assert.match(canonicalContent, /reply-latest/);
+  assert.match(canonicalContent, /Execution-first rule/);
+  assert.match(canonicalContent, /\$codex-channels doctor/);
   assert.match(canonicalContent, /Codex operator mode/);
   assert.match(canonicalContent, /If the user asks whether the runtime is ready/);
 

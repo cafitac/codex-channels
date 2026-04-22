@@ -4,6 +4,7 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+- Make the `codex-channels` skill execution-first for obvious subcommand intents like doctor, demo, pending, and reply-latest.
 ## 0.1.14 - 2026-04-22
 
 - Make the `codex-channels` skill itself more workflow-oriented so Codex defaults to doctor/pending/demo/reply-latest guidance instead of only restating command lists.

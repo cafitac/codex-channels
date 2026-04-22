@@ -12,6 +12,22 @@ Use this skill when you want to:
 - reply to the newest interaction with less shell ceremony
 - explain how the local runtime fits into Codex workflows
 
+## Execution-first rule
+
+When the user invokes this skill with an obvious subcommand intent, **run the matching `codex-channels` command first** instead of only explaining it.
+
+Examples:
+- `$codex-channels doctor` -> run `codex-channels doctor`, then summarize the result.
+- `$codex-channels demo` -> run `codex-channels demo`; if port binding needs approval, request it and continue.
+- `$codex-channels pending` -> run `codex-channels pending` first.
+- `$codex-channels reply-latest --text ...` -> run the command first, then summarize what was resolved.
+- `$codex-channels reply --id ... --text ...` -> run the targeted reply first.
+
+Only stay explanatory when:
+- the user explicitly asks for docs or a summary
+- a command would be destructive or materially ambiguous
+- missing arguments prevent a safe execution-first interpretation
+
 ## Codex operator mode
 
 When invoked from inside Codex, prefer **doing the next operator step** over only restating documentation.
