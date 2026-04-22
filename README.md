@@ -259,6 +259,7 @@ npm run preflight:ci
 - [v0.1.9 release notes](./docs/releases/v0.1.9.md)
 - [v0.1.10 release notes](./docs/releases/v0.1.10.md)
 - [v0.1.11 release notes](./docs/releases/v0.1.11.md)
+- [v0.1.12 release notes](./docs/releases/v0.1.12.md)
 
 ## License
 
