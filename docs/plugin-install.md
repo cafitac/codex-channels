@@ -171,3 +171,10 @@ The plugin wrapper is intentionally thin:
   - the codex-channels skill
 
 This keeps the repository aligned with the npm-first strategy while still making Codex installation ergonomic.
+
+## Operator shortcut commands
+
+The local runtime loop now includes two convenience commands for Codex-guided use:
+
+- `codex-channels pending` — show actionable interactions newest-first
+- `codex-channels reply-latest --text ...` — reply to the newest actionable interaction without copying the id

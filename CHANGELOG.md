@@ -4,6 +4,7 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+- Add guided local-loop commands (`pending`, `reply-latest`) so Codex sessions can operate the local interaction flow with less shell ceremony.
 ## 0.1.12 - 2026-04-22
 
 - Install a canonical Codex skill during `plugin-bootstrap` so Codex CLI can see `codex-channels` even when local plugin marketplaces are not surfaced.

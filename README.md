@@ -84,8 +84,10 @@ trying to mutate the checkout automatically.
 ### Inspect and reply to interactions
 
 ```bash
+codex-channels pending
 codex-channels inspect
-codex-channels reply --id <interaction-id> --text staging
+codex-channels reply-latest --text staging
+# or codex-channels reply --id <interaction-id> --text staging
 ```
 
 Typical flow:

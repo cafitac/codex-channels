@@ -96,6 +96,23 @@ async function loadStateInteractions(argv: string[]) {
   }
 }
 
+
+function filterActionableInteractions(interactions: Interaction[]) {
+  return interactions.filter((item) => item.kind !== "progress_update" && (item.status === "pending" || item.status === "delivered"));
+}
+
+function sortInteractionsNewestFirst(interactions: Interaction[]) {
+  return [...interactions].sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+}
+
+function summarizeInteraction(interaction: Interaction) {
+  return interaction.payload.message.replace(/\s+/g, " ").slice(0, 80);
+}
+
+function findLatestActionableInteraction(interactions: Interaction[]) {
+  return sortInteractionsNewestFirst(filterActionableInteractions(interactions))[0];
+}
+
 async function runInspect(argv: string[]) {
   const id = readFlag(argv, "--id", "");
   const statusFilter = readFlag(argv, "--status", "");
@@ -118,7 +135,7 @@ async function runInspect(argv: string[]) {
   }
 
   for (const interaction of filtered) {
-    const summary = interaction.payload.message.replace(/\s+/g, " ").slice(0, 80);
+    const summary = summarizeInteraction(interaction);
     console.log(`- ${interaction.id}`);
     console.log(`  kind: ${interaction.kind}`);
     console.log(`  status: ${interaction.status}`);
@@ -162,6 +179,41 @@ async function runReply(argv: string[]) {
     throw new Error(`failed to reply to interaction: ${response.status}`);
   }
   console.log(JSON.stringify(await response.json(), null, 2));
+}
+
+async function runPending(argv: string[]) {
+  const { filePath, interactions } = await loadStateInteractions(argv);
+  const pending = sortInteractionsNewestFirst(filterActionableInteractions(interactions));
+
+  if (hasFlag(argv, "--json")) {
+    console.log(JSON.stringify({ stateFile: filePath, count: pending.length, interactions: pending }, null, 2));
+    return;
+  }
+
+  console.log(`state file: ${filePath}`);
+  if (pending.length === 0) {
+    console.log("no pending interactions found");
+    return;
+  }
+
+  for (const interaction of pending) {
+    console.log(`- ${interaction.id}`);
+    console.log(`  kind: ${interaction.kind}`);
+    console.log(`  status: ${interaction.status}`);
+    console.log(`  source: ${interaction.source.name}`);
+    console.log(`  message: ${summarizeInteraction(interaction)}`);
+  }
+}
+
+async function runReplyLatest(argv: string[]) {
+  const { interactions } = await loadStateInteractions(argv);
+  const latest = findLatestActionableInteraction(interactions);
+  if (!latest) {
+    throw new Error("reply-latest could not find a pending interaction in the state file");
+  }
+
+  const nextArgv = argv.includes("--id") ? argv : [...argv, "--id", latest.id];
+  await runReply(nextArgv);
 }
 
 async function runDoctor(argv: string[]) {
@@ -678,6 +730,16 @@ async function main(argv: string[]) {
     return;
   }
 
+  if (command === "pending") {
+    await runPending(argv);
+    return;
+  }
+
+  if (command === "reply-latest") {
+    await runReplyLatest(argv);
+    return;
+  }
+
   if (command === "demo") {
     await runDemo(argv);
     return;
@@ -708,7 +770,7 @@ async function main(argv: string[]) {
     return;
   }
 
-  console.log(`codex-channels\n\nCommands:\n  doctor            Check the local runtime and show the next useful commands\n  demo              Start a demo interaction and wait for a reply\n  inspect           Read the local interaction state file and list current interactions\n  reply             Reply to one interaction on the running local runtime\n  self-update       Check for a newer published CLI version and install it\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Generate a Codex plugin wrapper and register it in the marketplace\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --id <interaction-id>      Target interaction for inspect/reply\n  --status <status>          Filter inspect output by interaction status\n  --text <value>             Reply value for reply/submit flows\n  --accept                   Send an accept reply\n  --decline                  Send a decline reply\n  --cancel                   Cancel the interaction\n  --timeout-ms <ms>          Bridge or demo interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: user | workspace (prompts with an arrow-key menu when interactive; defaults to user otherwise)\n  --plugin-path <path>       explicit plugin root to generate and register\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --no-update-check          Skip automatic update prompts for this run\n  --yes                      Apply self-update without prompting\n  --json                     Emit JSON output for inspect\n  --quiet                    Suppress bridge startup metadata on stderr`);
+  console.log(`codex-channels\n\nCommands:\n  doctor            Check the local runtime and show the next useful commands\n  demo              Start a demo interaction and wait for a reply\n  inspect           Read the local interaction state file and list current interactions\n  pending           Show the newest pending or delivered interactions first\n  reply             Reply to one interaction on the running local runtime\n  reply-latest      Reply to the newest pending interaction without copying its id\n  self-update       Check for a newer published CLI version and install it\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Generate a Codex plugin wrapper and register it in the marketplace\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --id <interaction-id>      Target interaction for inspect/reply\n  --status <status>          Filter inspect output by interaction status\n  --text <value>             Reply value for reply/submit flows\n  --accept                   Send an accept reply\n  --decline                  Send a decline reply\n  --cancel                   Cancel the interaction\n  --timeout-ms <ms>          Bridge or demo interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: user | workspace (prompts with an arrow-key menu when interactive; defaults to user otherwise)\n  --plugin-path <path>       explicit plugin root to generate and register\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --no-update-check          Skip automatic update prompts for this run\n  --yes                      Apply self-update without prompting\n  --json                     Emit JSON output for inspect\n  --quiet                    Suppress bridge startup metadata on stderr`);
 }
 
 main(process.argv).catch((error) => {

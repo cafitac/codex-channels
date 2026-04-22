@@ -75,3 +75,15 @@ codex-channels self-update
 
 If you are running from a source checkout, the command prints the manual
 update path instead of mutating the checkout automatically.
+
+## Guided local loop
+
+For the fastest manual proof after bootstrap:
+
+```bash
+codex-channels demo
+codex-channels pending
+codex-channels reply-latest --text staging
+```
+
+`pending` shows only actionable requests, and `reply-latest` lets you close the newest one without copying the id by hand.

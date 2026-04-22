@@ -244,6 +244,115 @@ test("bridge-spawn boots the local runtime and reports startup metadata", async 
   }
 });
 
+
+test("pending shows actionable interactions newest-first and skips progress updates", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-pending-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({
+    interactions: [
+      {
+        id: "bootstrap-preview",
+        kind: "progress_update",
+        source: { type: "system", name: "codex-channels" },
+        payload: { message: "ready" },
+        createdAt: "2026-01-01T00:00:00.000Z",
+        status: "pending",
+      },
+      {
+        id: "older-request",
+        kind: "user_input_request",
+        source: { type: "system", name: "test" },
+        payload: { message: "Older request" },
+        createdAt: "2026-01-01T00:00:01.000Z",
+        status: "pending",
+      },
+      {
+        id: "newer-request",
+        kind: "approval_request",
+        source: { type: "system", name: "test" },
+        payload: { message: "Newest request" },
+        createdAt: "2026-01-01T00:00:02.000Z",
+        status: "delivered",
+      }
+    ]
+  }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "pending", "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.ok(stdout.indexOf("newer-request") < stdout.indexOf("older-request"));
+  assert.equal(stdout.includes("bootstrap-preview"), false);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("reply-latest resolves the newest actionable interaction", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-reply-latest-"));
+  const stateFile = join(dir, "state.json");
+  const port = await getFreePort();
+
+  await writeFile(stateFile, JSON.stringify({
+    interactions: [
+      {
+        id: "older-request",
+        kind: "user_input_request",
+        source: { type: "system", name: "test" },
+        payload: { message: "Older request" },
+        createdAt: "2026-01-01T00:00:01.000Z",
+        status: "pending",
+      },
+      {
+        id: "newer-request",
+        kind: "approval_request",
+        source: { type: "system", name: "test" },
+        payload: { message: "Newest request" },
+        createdAt: "2026-01-01T00:00:02.000Z",
+        status: "pending",
+      }
+    ]
+  }), "utf8");
+
+  const serverChild = spawn(process.execPath, [cliEntry, "serve", "--port", String(port), "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let serverStdout = "";
+  serverChild.stdout.on("data", (chunk) => {
+    serverStdout += chunk.toString();
+  });
+
+  try {
+    await waitFor(() => serverStdout.includes('"ok": true') || serverStdout.includes('"ok":true'), 2000, () => `serve startup timeout: ${serverStdout}`);
+
+    const child = spawn(process.execPath, [cliEntry, "reply-latest", "--port", String(port), "--state-file", stateFile, "--text", "approved"], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+    assert.equal(exitCode, 0);
+    const payload = JSON.parse(stdout.trim()) as { interaction?: { id?: string }; response?: { interactionId?: string; values?: string[] } };
+    assert.equal(payload.interaction?.id, "newer-request");
+    assert.equal(payload.response?.interactionId, "newer-request");
+    assert.deepEqual(payload.response?.values, ["approved"]);
+  } finally {
+    serverChild.kill();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("plugin-bootstrap writes a workspace marketplace entry", async () => {
   const dir = await mkdtemp(join(tmpdir(), "codex-channels-marketplace-"));
   const marketplaceFile = join(dir, ".agents", "plugins", "marketplace.json");
