@@ -13,9 +13,9 @@ codex-channels plugin-bootstrap
 
 What this does:
 - installs the CLI globally
-- writes `~/.agents/plugins/marketplace.json`
+- installs `~/.codex/skills/codex-channels/SKILL.md` (or `$CODEX_HOME/skills/...`) so Codex CLI can see the skill directly
+- writes `~/.agents/plugins/marketplace.json` for the legacy/local plugin wrapper path
 - generates a user-level `~/plugins/codex-channels` plugin root
-- registers that plugin source for Codex
 
 When run interactively, `plugin-bootstrap` now shows an arrow-key menu
 for user-level vs workspace-local installation. For a global CLI install,
@@ -36,8 +36,7 @@ npm run build
 npm run plugin:bootstrap
 ```
 
-This writes a workspace `.agents/plugins/marketplace.json` and a local
-`./plugins/codex-channels` plugin root for that repository only.
+This writes a workspace `.codex/skills/codex-channels/SKILL.md` so the repository-local Codex session can see the skill, plus a workspace `.agents/plugins/marketplace.json` and local `./plugins/codex-channels` plugin root.
 
 ## Verify installation
 

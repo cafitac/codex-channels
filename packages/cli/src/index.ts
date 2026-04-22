@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { LocalHttpChannelServer, LocalMemoryBackend } from "@cafitac/codex-channels-backend-local";
 import { Interaction, InteractionRuntime, InteractionStatus, createInteraction } from "@cafitac/codex-channels-core";
@@ -317,6 +317,50 @@ type MarketplaceFile = {
   plugins: MarketplacePlugin[];
 };
 
+function buildCodexChannelsSkillContent() {
+  return `---
+name: codex-channels
+description: Set up or operate the local codex-channels runtime for Codex-first interaction routing.
+---
+
+# codex-channels
+
+Use this skill when you want to:
+- bootstrap the local Codex integration for this machine or workspace
+- demo, inspect, or reply to local interactions
+- explain how the local runtime fits into Codex workflows
+
+Common commands:
+\`\`\`bash
+codex-channels plugin-bootstrap
+codex-channels doctor
+codex-channels demo
+codex-channels inspect
+codex-channels reply --id <interaction-id> --text staging
+\`\`\`
+
+Guidance:
+- Prefer the local runtime first unless you explicitly need a remote channel backend.
+- Use \`plugin-bootstrap\` to install the Codex-visible skill plus the plugin wrapper artifacts.
+- Use \`demo\`, \`inspect\`, and \`reply\` to verify the end-to-end interaction loop.
+`;
+}
+
+function resolveCanonicalSkillDir(scope: string) {
+  if (scope === "workspace") {
+    return resolve(".codex", "skills", "codex-channels");
+  }
+  const codexHome = process.env.CODEX_HOME?.trim() || join(homedir(), ".codex");
+  return resolve(codexHome, "skills", "codex-channels");
+}
+
+async function installCanonicalSkill(scope: string) {
+  const skillDir = resolveCanonicalSkillDir(scope);
+  await mkdir(skillDir, { recursive: true });
+  await writeFile(resolve(skillDir, "SKILL.md"), buildCodexChannelsSkillContent(), "utf8");
+  return skillDir;
+}
+
 async function writeGeneratedPluginRoot(targetDir: string, cliEntry: string, runtime: { host: string; port: string; stateFile: string }) {
   const pluginDir = resolve(targetDir);
   await mkdir(resolve(pluginDir, ".codex-plugin"), { recursive: true });
@@ -360,7 +404,7 @@ async function writeGeneratedPluginRoot(targetDir: string, cliEntry: string, run
     },
   };
 
-  const skill = `---\nname: codex-channels\ndescription: Use the local codex-channels runtime for Codex-first interaction routing.\n---\n\n# codex-channels\n\nUse this plugin when you want to demo, inspect, or reply to local Codex-channel interactions.\n`;
+  const skill = buildCodexChannelsSkillContent();
 
   await writeFile(resolve(pluginDir, ".codex-plugin", "plugin.json"), JSON.stringify(pluginManifest, null, 2) + "\n", "utf8");
   await writeFile(resolve(pluginDir, ".mcp.json"), JSON.stringify(mcp, null, 2) + "\n", "utf8");
@@ -430,6 +474,7 @@ async function resolveBootstrapScope(argv: string[]) {
 
 async function runPluginBootstrap(argv: string[]) {
   const scope = await resolveBootstrapScope(argv);
+  const installedSkillDir = await installCanonicalSkill(scope);
   const requestedPluginPath = argv.includes("--plugin-path") ? readFlag(argv, "--plugin-path", "") : null;
   const cliEntry = resolve(process.argv[1] ?? "./dist/index.js");
   const pluginPath = await ensurePluginSourcePath(scope, requestedPluginPath, cliEntry, {
@@ -472,6 +517,7 @@ async function runPluginBootstrap(argv: string[]) {
     marketplaceFile,
     pluginPath,
     pluginCount: marketplace.plugins.length,
+    skillPath: installedSkillDir,
   }, null, 2));
 }
 

@@ -4,6 +4,7 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+- Install a canonical Codex skill during `plugin-bootstrap` so Codex CLI can see `codex-channels` even when local plugin marketplaces are not surfaced.
 ## 0.1.11 - 2026-04-22
 
 - Add an interactive CLI update checker/updater with arrow-key menu choices for update now, skip once, and skip until next version.
