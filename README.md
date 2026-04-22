@@ -53,12 +53,37 @@ codex-channels doctor
 codex-channels demo
 ```
 
+`demo` intentionally waits for a real reply so you can see the full
+publish → inspect → reply → resolve loop.
+
 ### Inspect and reply to interactions
 
 ```bash
 codex-channels inspect
 codex-channels reply --id <interaction-id> --text staging
 ```
+
+Typical flow:
+
+1. run `codex-channels demo`
+2. in another terminal, run `codex-channels inspect`
+3. copy the interaction id
+4. run `codex-channels reply --id <that-id> --text staging`
+5. watch the original `demo` command finish with the resolved response
+
+Example:
+
+```bash
+# terminal 1
+codex-channels demo
+
+# terminal 2
+codex-channels inspect --state-file .codex-channels/state.json
+codex-channels reply --id demo-1234567890 --text staging --port 4317
+```
+
+`demo` waiting after it prints the interaction id is expected behavior.
+It only finishes after you send a real reply from another terminal.
 
 ### Lower-level runtime / bridge commands
 
@@ -120,6 +145,31 @@ docs/
 - `demo` starts a sample interaction and waits for you to answer it from another terminal
 - `inspect` shows what interactions currently exist in the local state file
 - `reply` sends an answer back to a running local runtime
+
+## If you want to use it from inside Codex
+
+After:
+
+```bash
+codex-channels plugin-bootstrap --scope workspace
+```
+
+restart Codex in that workspace.
+
+Then inside Codex, treat `codex-channels` as the interaction layer that
+the plugin/bridge can use for:
+- approval requests
+- free-text user input
+- inspect/reply style debugging flows
+
+If you are testing by hand, the easiest companion commands are still:
+
+```bash
+codex-channels doctor
+codex-channels demo
+codex-channels inspect
+codex-channels reply --id <interaction-id> --text staging
+```
 
 ## CLI
 
