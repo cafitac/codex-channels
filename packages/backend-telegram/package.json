@@ -1,6 +1,6 @@
 {
   "name": "@cafitac/codex-channels-backend-telegram",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./src/index.ts",
@@ -11,7 +11,7 @@
     }
   },
   "dependencies": {
-    "@cafitac/codex-channels-core": "0.1.22"
+    "@cafitac/codex-channels-core": "0.1.23"
   },
   "scripts": {
     "prepack": "tsc -p tsconfig.json"

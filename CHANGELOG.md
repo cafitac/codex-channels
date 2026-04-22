@@ -4,6 +4,10 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.23 - 2026-04-22
+
+- Improve `watch` with change-specific next-step hints so low-noise monitoring stays actionable.
+
 - Add a compact next-step hint to watch output so low-noise monitoring also stays actionable.
 ## 0.1.22 - 2026-04-22
 
