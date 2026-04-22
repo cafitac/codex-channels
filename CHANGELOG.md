@@ -4,6 +4,10 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.20 - 2026-04-22
+
+- Quote `[CODEX-CHANNELS]` skill descriptions so Codex can parse the installed SKILL.md frontmatter instead of skipping the shortcut skills.
+
 ## 0.1.19 - 2026-04-22
 
 - Install shortcut skills like `operator-status` and `next-step` into the canonical Codex skill root so users can discover key actions without relying on subcommand arguments.
