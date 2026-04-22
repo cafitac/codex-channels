@@ -105,3 +105,13 @@ codex-channels next-step
 ```
 
 If the next action is a reply, add `--text ...`; otherwise the command will tell you what input is missing.
+
+## Low-noise follow mode
+
+When you want to keep an eye on the local queue without re-running status commands manually, use:
+
+```bash
+codex-channels watch
+```
+
+This prints the first summary immediately and then only prints again when the operator state actually changes.

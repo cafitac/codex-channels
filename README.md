@@ -40,7 +40,7 @@ codex-channels plugin-bootstrap
 
 This now installs a Codex-visible `codex-channels` skill set into the
 canonical Codex skill root (including shortcut skills such as
-`operator-status` and `next-step`) as well as generating the plugin
+`operator-status`, `next-step`, and `channels-watch`) as well as generating the plugin
 wrapper and MCP surface. Then restart Codex so it can reload both surfaces.
 
 If you run `plugin-bootstrap` in an interactive shell, it now uses an
@@ -57,6 +57,7 @@ If you want to confirm the runtime manually first, run:
 
 ```bash
 codex-channels operator-status
+codex-channels watch
 codex-channels next-step
 codex-channels doctor
 codex-channels pending

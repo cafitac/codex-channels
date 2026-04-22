@@ -247,6 +247,50 @@ test("bridge-spawn boots the local runtime and reports startup metadata", async 
 
 
 
+
+test("watch reports the first summary once and ends quietly when nothing changes", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-watch-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({ interactions: [] }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "watch", "--state-file", stateFile, "--interval-ms", "10", "--timeout-ms", "40"], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.equal((stdout.match(/state file:/g) ?? []).length, 1);
+  assert.match(stdout, /watch ended/);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("watch --json emits the summary payload", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-watch-json-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({ interactions: [] }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "watch", "--state-file", stateFile, "--interval-ms", "10", "--timeout-ms", "20", "--json"], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.match(stdout, /"ok": true/);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
 test("next-step --json returns the next recommended command", async () => {
   const dir = await mkdtemp(join(tmpdir(), "codex-channels-next-step-json-"));
   const stateFile = join(dir, "state.json");
@@ -503,8 +547,10 @@ test("plugin-bootstrap writes a workspace marketplace entry", async () => {
 
   const workspaceSkill = join(dir, ".codex", "skills", "codex-channels", "SKILL.md");
   const operatorStatusSkill = join(dir, ".codex", "skills", "operator-status", "SKILL.md");
+  const watchSkill = join(dir, ".codex", "skills", "channels-watch", "SKILL.md");
   assert.equal(Boolean((await readFile(workspaceSkill, "utf8")).length), true);
   assert.equal(Boolean((await readFile(operatorStatusSkill, "utf8")).length), true);
+  assert.equal(Boolean((await readFile(watchSkill, "utf8")).length), true);
 
   await rm(dir, { recursive: true, force: true });
 });
@@ -535,6 +581,7 @@ test("plugin-bootstrap defaults to user scope and generates a plugin root plus c
   assert.equal(payload.skillPath, join(codexHome, "skills", "codex-channels"));
   assert.equal(Array.isArray(payload.installedSkills), true);
   assert.ok(payload.installedSkills.includes(join(codexHome, "skills", "operator-status")));
+  assert.ok(payload.installedSkills.includes(join(codexHome, "skills", "channels-watch")));
 
   const marketplace = JSON.parse(await readFile(userMarketplace, "utf8")) as { plugins: Array<{ name: string; source: { path: string } }> };
   assert.equal(marketplace.plugins[0]?.name, "codex-channels");
@@ -553,6 +600,7 @@ test("plugin-bootstrap defaults to user scope and generates a plugin root plus c
   assert.match(canonicalContent, /codex-channels pending/);
   assert.match(canonicalContent, /reply-latest/);
   assert.match(canonicalContent, /next-step/);
+  assert.match(canonicalContent, /channels-watch/);
   assert.match(canonicalContent, /Execution-first rule/);
   assert.match(operatorStatusContent, /\[CODEX-CHANNELS\]/);
   assert.match(canonicalContent, /\$codex-channels doctor/);

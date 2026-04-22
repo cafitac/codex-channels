@@ -4,6 +4,7 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+- Add a low-noise `watch` mode that prints the first summary immediately and then only reports meaningful state changes.
 ## 0.1.20 - 2026-04-22
 
 - Quote `[CODEX-CHANNELS]` skill descriptions so Codex can parse the installed SKILL.md frontmatter instead of skipping the shortcut skills.
