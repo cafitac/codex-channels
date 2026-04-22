@@ -1060,6 +1060,8 @@ test("submit reuses an already running runtime instead of rebinding the port", a
     submit = spawn(process.execPath, [cliEntry, "submit", "--port", String(port), "--state-file", stateFile, "--interaction-file", interactionFile, "--timeout-ms", "10000"], {
       stdio: ["ignore", "pipe", "pipe"],
     });
+    assert.ok(submit.stdout);
+    assert.ok(submit.stderr);
 
     let submitStdout = "";
     let submitStderr = "";
@@ -1083,7 +1085,9 @@ test("submit reuses an already running runtime instead of rebinding the port", a
     });
     assert.equal(respondResponse.ok, true);
 
-    const submitExit = await new Promise<number | null>((resolve) => submit.once("exit", resolve));
+    const submitProc = submit;
+    assert.ok(submitProc);
+    const submitExit = await new Promise<number | null>((resolve) => submitProc.once("exit", resolve));
     assert.equal(submitExit, 0, `submit stderr: ${submitStderr}`);
     assert.equal(submitStderr.includes("EADDRINUSE"), false, `unexpected port conflict: ${submitStderr}`);
 
