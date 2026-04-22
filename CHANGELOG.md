@@ -4,6 +4,7 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+- Make the `codex-channels` skill itself more workflow-oriented so Codex defaults to doctor/pending/demo/reply-latest guidance instead of only restating command lists.
 - Prefer `pending` and `reply-latest` in doctor/demo guidance so the Codex-guided operator flow defaults to actionable commands first.
 ## 0.1.13 - 2026-04-22
 
