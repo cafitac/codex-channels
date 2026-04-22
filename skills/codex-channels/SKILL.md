@@ -122,3 +122,4 @@ codex-channels reply --id <interaction-id> --text staging
 Additional watch guidance:
 - Use `watch` only when you actually want background-style monitoring; default flows should stay quiet.
 - Watch mode should surface changes, not spam repeated no-change summaries.
+- Treat watch output as change events: runtime up/down, actionable interaction count changes, latest interaction changes, or next-step changes.

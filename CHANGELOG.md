@@ -4,6 +4,11 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.22 - 2026-04-22
+
+- Improve `watch` with change-specific summaries so low-noise monitoring reports what changed instead of repeating generic updates.
+
+- Improve watch mode with change-specific summaries instead of a generic change banner.
 ## 0.1.21 - 2026-04-22
 
 - Add a low-noise `watch` mode plus `channels-watch` shortcut skill so Codex-guided sessions only surface meaningful state changes.

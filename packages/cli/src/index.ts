@@ -203,29 +203,47 @@ function createOperatorSummarySignature(payload: OperatorSummary) {
   });
 }
 
+function summarizeOperatorChange(previous: OperatorSummary | null, current: OperatorSummary) {
+  if (!previous) return "initial summary";
+  if (previous.runtimeReachable !== current.runtimeReachable) {
+    return current.runtimeReachable ? "runtime became reachable" : "runtime became unreachable";
+  }
+  if (previous.actionableCount !== current.actionableCount) {
+    return current.actionableCount > previous.actionableCount ? "new actionable interaction detected" : "actionable interaction resolved";
+  }
+  if (previous.latestInteraction?.id !== current.latestInteraction?.id) {
+    return current.latestInteraction ? `latest interaction changed to ${current.latestInteraction.id}` : "latest actionable interaction cleared";
+  }
+  if (JSON.stringify(previous.next) !== JSON.stringify(current.next)) {
+    return "recommended next step changed";
+  }
+  return "operator state changed";
+}
+
 async function runWatch(argv: string[]) {
   const intervalMs = Number(readFlag(argv, "--interval-ms", process.env.CODEX_CHANNELS_WATCH_INTERVAL_MS ?? "1000"));
   const timeoutMs = Number(readFlag(argv, "--timeout-ms", process.env.CODEX_CHANNELS_WATCH_TIMEOUT_MS ?? "0"));
   const startedAt = Date.now();
   let lastSignature = "";
-  let first = true;
+  let previousPayload: OperatorSummary | null = null;
 
   while (true) {
     const payload = await buildOperatorSummary(argv);
     const signature = createOperatorSummarySignature(payload);
-    if (first || signature !== lastSignature) {
-      if (!first) console.log("--- change detected ---");
+    if (!previousPayload || signature !== lastSignature) {
+      const changeSummary = summarizeOperatorChange(previousPayload, payload);
       if (hasFlag(argv, "--json")) {
-        console.log(JSON.stringify(payload, null, 2));
+        console.log(JSON.stringify({ change: changeSummary, ...payload }, null, 2));
       } else {
+        console.log(`[CODEX-CHANNELS] ${changeSummary}`);
         console.log(formatOperatorSummary(payload));
       }
       lastSignature = signature;
-      first = false;
+      previousPayload = payload;
     }
 
     if (timeoutMs > 0 && Date.now() - startedAt >= timeoutMs) {
-      console.log("watch ended");
+      if (!hasFlag(argv, "--json")) console.log("watch ended");
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, intervalMs));

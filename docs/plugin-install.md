@@ -188,3 +188,5 @@ Use `codex-channels operator-status --json` when you want the same summary in a 
 The canonical skill install now includes shortcut skills such as `operator-status`, `next-step`, `channels-doctor`, `channels-demo`, `channels-pending`, and `channels-reply-latest` so Codex users can discover the most important actions without remembering subcommand arguments.
 
 - `channels-watch` / `codex-channels watch` — low-noise follow mode that only reports meaningful state changes
+
+Watch mode uses change-only output by default so Codex sessions do not accumulate repeated no-change summaries.

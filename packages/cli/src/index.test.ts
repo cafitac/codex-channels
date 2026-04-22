@@ -265,7 +265,49 @@ test("watch reports the first summary once and ends quietly when nothing changes
   const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
   assert.equal(exitCode, 0);
   assert.equal((stdout.match(/state file:/g) ?? []).length, 1);
+  assert.match(stdout, /\[CODEX-CHANNELS\] initial summary/);
   assert.match(stdout, /watch ended/);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+
+test("watch only prints again when the operator state actually changes", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-watch-change-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({ interactions: [] }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "watch", "--state-file", stateFile, "--interval-ms", "20", "--timeout-ms", "120"], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  setTimeout(async () => {
+    await writeFile(stateFile, JSON.stringify({
+      interactions: [{
+        id: "pending-request",
+        kind: "user_input_request",
+        source: { type: "system", name: "test" },
+        payload: { message: "Need an answer" },
+        createdAt: "2026-01-01T00:00:01.000Z",
+        status: "pending",
+      }]
+    }), "utf8");
+  }, 30);
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.match(stdout, /\[CODEX-CHANNELS\] initial summary/);
+  assert.match(stdout, /pending-request/);
+  const summaryCount = (stdout.match(/state file:/g) ?? []).length;
+  assert.ok(summaryCount >= 1 && summaryCount <= 2);
+  if (summaryCount === 2) {
+    assert.match(stdout, /\[CODEX-CHANNELS\] new actionable interaction detected/);
+  }
 
   await rm(dir, { recursive: true, force: true });
 });
@@ -287,6 +329,7 @@ test("watch --json emits the summary payload", async () => {
   const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
   assert.equal(exitCode, 0);
   assert.match(stdout, /"ok": true/);
+  assert.match(stdout, /"change": "initial summary"/);
 
   await rm(dir, { recursive: true, force: true });
 });

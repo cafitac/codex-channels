@@ -114,4 +114,4 @@ When you want to keep an eye on the local queue without re-running status comman
 codex-channels watch
 ```
 
-This prints the first summary immediately and then only prints again when the operator state actually changes.
+This prints the first summary immediately and then only prints again when the operator state actually changes. The default is human-readable change-only output; use `--json` when another tool needs the machine-readable payload.

@@ -277,7 +277,18 @@ npm run preflight:ci
 - [v0.1.19 release notes](./docs/releases/v0.1.19.md)
 - [v0.1.20 release notes](./docs/releases/v0.1.20.md)
 - [v0.1.21 release notes](./docs/releases/v0.1.21.md)
+- [v0.1.22 release notes](./docs/releases/v0.1.22.md)
 
 ## License
 
 MIT. See [LICENSE](./LICENSE).
+
+### Low-noise follow mode
+
+When you want to keep an eye on the queue without repeated manual polling:
+
+```bash
+codex-channels watch
+```
+
+It prints the initial summary once and then only prints again when runtime reachability, actionable count, the latest actionable interaction, or the next-step recommendation actually changes.
