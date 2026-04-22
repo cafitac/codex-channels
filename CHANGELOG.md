@@ -4,6 +4,7 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+- Add a compact next-step hint to watch output so low-noise monitoring also stays actionable.
 ## 0.1.22 - 2026-04-22
 
 - Improve `watch` with change-specific summaries so low-noise monitoring reports what changed instead of repeating generic updates.

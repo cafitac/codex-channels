@@ -123,3 +123,4 @@ Additional watch guidance:
 - Use `watch` only when you actually want background-style monitoring; default flows should stay quiet.
 - Watch mode should surface changes, not spam repeated no-change summaries.
 - Treat watch output as change events: runtime up/down, actionable interaction count changes, latest interaction changes, or next-step changes.
+- Each change event should carry a compact next-step hint so the user can act without another full status query.

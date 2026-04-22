@@ -292,3 +292,5 @@ codex-channels watch
 ```
 
 It prints the initial summary once and then only prints again when runtime reachability, actionable count, the latest actionable interaction, or the next-step recommendation actually changes.
+
+Watch mode now includes a compact `hint:` line with the current best next command whenever it emits a summary.

@@ -232,10 +232,12 @@ async function runWatch(argv: string[]) {
     const signature = createOperatorSummarySignature(payload);
     if (!previousPayload || signature !== lastSignature) {
       const changeSummary = summarizeOperatorChange(previousPayload, payload);
+      const primaryHint = payload.next[0] ?? null;
       if (hasFlag(argv, "--json")) {
-        console.log(JSON.stringify({ change: changeSummary, ...payload }, null, 2));
+        console.log(JSON.stringify({ change: changeSummary, hint: primaryHint, ...payload }, null, 2));
       } else {
         console.log(`[CODEX-CHANNELS] ${changeSummary}`);
+        if (primaryHint) console.log(`[CODEX-CHANNELS] hint: ${primaryHint}`);
         console.log(formatOperatorSummary(payload));
       }
       lastSignature = signature;

@@ -190,3 +190,5 @@ The canonical skill install now includes shortcut skills such as `operator-statu
 - `channels-watch` / `codex-channels watch` — low-noise follow mode that only reports meaningful state changes
 
 Watch mode uses change-only output by default so Codex sessions do not accumulate repeated no-change summaries.
+
+Watch mode also prints a compact `hint:` line with the current best next operator command.
