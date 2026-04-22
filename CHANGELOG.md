@@ -4,6 +4,10 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.18 - 2026-04-22
+
+- Add `next-step` as a state-based operator action router for Codex-guided local runtime flows.
+
 - Add `next-step` as a state-based operator action router for Codex-guided local runtime flows.
 ## 0.1.17 - 2026-04-22
 
