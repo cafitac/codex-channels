@@ -4,6 +4,10 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.16 - 2026-04-22
+
+- Add `operator-status` as a one-shot operator summary for Codex-guided local runtime flows.
+
 - Add `operator-status` as a one-shot operator summary for Codex-guided local runtime flows.
 ## 0.1.15 - 2026-04-22
 
