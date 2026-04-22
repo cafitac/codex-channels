@@ -4,6 +4,9 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+- Add an interactive CLI update checker/updater with arrow-key menu choices for update now, skip once, and skip until next version.
+- Reuse the same arrow-key menu UX for `plugin-bootstrap` scope selection while keeping non-interactive defaults safe.
+
 ## 0.1.10 - 2026-04-22
 
 - Publish the user-scope-first bootstrap behavior in the CLI package.

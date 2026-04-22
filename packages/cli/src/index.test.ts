@@ -6,6 +6,8 @@ import { dirname, join } from "node:path";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { createServer } from "node:net";
+import { buildSelfUpdatePlan, checkForUpdates, compareVersions, dismissVersion, readUpdateState, shouldCheckForUpdates } from "./updates.js";
+import { createMenuController, renderMenu, supportsInteractiveMenu } from "./interactive.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -38,6 +40,128 @@ async function waitFor(predicate: () => boolean | Promise<boolean>, timeoutMs: n
   }
   throw new Error(failure());
 }
+
+async function withEnv<T>(overrides: Record<string, string | undefined>, fn: () => Promise<T>): Promise<T> {
+  const previous = new Map<string, string | undefined>();
+  for (const [key, value] of Object.entries(overrides)) {
+    previous.set(key, process.env[key]);
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  try {
+    return await fn();
+  } finally {
+    for (const [key, value] of previous.entries()) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+test("compareVersions handles multi-digit semver segments", () => {
+  assert.equal(compareVersions("0.1.10", "0.1.9"), 1);
+  assert.equal(compareVersions("1.0.0", "1.0.0"), 0);
+  assert.equal(compareVersions("1.2.0", "1.10.0"), -1);
+});
+
+test("shouldCheckForUpdates respects TTL", () => {
+  assert.equal(shouldCheckForUpdates({}), true);
+  assert.equal(shouldCheckForUpdates({ lastCheckedAt: new Date().toISOString() }), false);
+  assert.equal(shouldCheckForUpdates({ lastCheckedAt: "1999-01-01T00:00:00.000Z" }), true);
+});
+
+test("interactive menu controller wraps selection and renders arrow state", () => {
+  const controller = createMenuController([
+    { label: "One", value: 1 },
+    { label: "Two", value: 2 },
+  ], 0).move(-1);
+
+  assert.equal(controller.selected().value, 2);
+  const rendered = renderMenu("Choose one", controller);
+  assert.match(rendered, /› Two/);
+  assert.match(rendered, /Use ↑\/↓ to move/);
+});
+
+test("supportsInteractiveMenu requires tty input and output", () => {
+  const rawMode = (_mode: boolean) => undefined as unknown as NodeJS.ReadStream;
+  assert.equal(supportsInteractiveMenu({ isTTY: true, setRawMode: rawMode }, { isTTY: true }), true);
+  assert.equal(supportsInteractiveMenu({ isTTY: false, setRawMode: rawMode }, { isTTY: true }), false);
+  assert.equal(supportsInteractiveMenu({ isTTY: true, setRawMode: undefined as unknown as NodeJS.ReadStream["setRawMode"] }, { isTTY: true }), false);
+});
+
+test("checkForUpdates respects skip-until-next-version state", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-update-state-"));
+  const stateFile = join(dir, "update-state.json");
+
+  await withEnv({
+    CODEX_CHANNELS_UPDATE_STATE_FILE: stateFile,
+    CODEX_CHANNELS_LATEST_VERSION: "0.1.99",
+    CODEX_CHANNELS_INSTALL_CONTEXT: "published-package",
+  }, async () => {
+    await dismissVersion("0.1.99", stateFile);
+    const availability = await checkForUpdates({ force: true });
+    assert.equal(availability, null);
+    const state = await readUpdateState(stateFile);
+    assert.equal(state.dismissedVersion, "0.1.99");
+  });
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("explicit self-update ignores dismissed-version state", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-self-update-dismissed-"));
+  const stateFile = join(dir, "update-state.json");
+  const marker = join(dir, "updated.txt");
+  const updater = join(dir, "fake-update.mjs");
+  await writeFile(updater, `import { writeFileSync } from 'node:fs'; writeFileSync(${JSON.stringify(marker)}, 'ok');`, "utf8");
+
+  await dismissVersion("0.1.99", stateFile);
+
+  const child = spawn(process.execPath, [cliEntry, "self-update", "--yes"], {
+    cwd: dir,
+    env: {
+      ...process.env,
+      CODEX_CHANNELS_UPDATE_STATE_FILE: stateFile,
+      CODEX_CHANNELS_LATEST_VERSION: "0.1.99",
+      CODEX_CHANNELS_INSTALL_CONTEXT: "published-package",
+      CODEX_CHANNELS_UPDATE_COMMAND: process.execPath,
+      CODEX_CHANNELS_UPDATE_ARGS: updater,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.match(stdout, /Updated codex-channels to v0.1.99/);
+  assert.equal(await readFile(marker, "utf8"), "ok");
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("buildSelfUpdatePlan auto-runs for published installs and falls back for source checkouts", () => {
+  const published = buildSelfUpdatePlan({
+    currentVersion: "0.1.10",
+    latestVersion: "0.1.11",
+    stateFile: "/tmp/state.json",
+    installContext: "published-package",
+  });
+  assert.equal(published.canAutoRun, true);
+  assert.deepEqual(published.args, ["install", "-g", "@cafitac/codex-channels@latest"]);
+
+  const source = buildSelfUpdatePlan({
+    currentVersion: "0.1.10",
+    latestVersion: "0.1.11",
+    stateFile: "/tmp/state.json",
+    installContext: "source-checkout",
+  });
+  assert.equal(source.canAutoRun, false);
+  assert.match(source.manualSteps[0] ?? "", /git pull/);
+});
 
 test("bridge-stdio exposes local runtime and returns json-rpc responses", async () => {
   const stateDir = await mkdtemp(join(tmpdir(), "codex-channels-cli-"));
@@ -98,7 +222,7 @@ test("bridge-spawn boots the local runtime and reports startup metadata", async 
   const stateFile = join(tempDir, "state.json");
   const port = await getFreePort();
   const fakeChild = join(tempDir, "fake-codex.mjs");
-  await writeFile(fakeChild, `setInterval(() => {}, 1000);`, "utf8");
+  await writeFile(fakeChild, "setInterval(() => {}, 1000);", "utf8");
 
   const child = spawn(process.execPath, [cliEntry, "bridge-spawn", "--port", String(port), "--state-file", stateFile, "--spawn-mode", "raw", "--codex-command", process.execPath, "--codex-arg", fakeChild], {
     stdio: ["ignore", "pipe", "pipe"],
@@ -180,8 +304,8 @@ test("plugin-bootstrap defaults to user scope and generates a plugin root", asyn
   await rm(dir, { recursive: true, force: true });
 });
 
-test("help output keeps first-run commands ahead of lower-level bridge commands", async () => {
-  const child = spawn(process.execPath, [cliEntry], {
+test("help output keeps first-run commands ahead of lower-level bridge commands and mentions self-update", async () => {
+  const child = spawn(process.execPath, [cliEntry, "--no-update-check"], {
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -196,16 +320,52 @@ test("help output keeps first-run commands ahead of lower-level bridge commands"
   const demoIndex = stdout.indexOf("demo");
   const inspectIndex = stdout.indexOf("inspect");
   const replyIndex = stdout.indexOf("reply");
+  const selfUpdateIndex = stdout.indexOf("self-update");
   const bridgeIndex = stdout.indexOf("bridge-stdio");
   assert.ok(doctorIndex >= 0);
   assert.ok(demoIndex >= 0);
   assert.ok(inspectIndex >= 0);
   assert.ok(replyIndex >= 0);
+  assert.ok(selfUpdateIndex >= 0);
   assert.ok(bridgeIndex >= 0);
   assert.ok(doctorIndex < bridgeIndex);
   assert.ok(demoIndex < bridgeIndex);
   assert.ok(inspectIndex < bridgeIndex);
   assert.ok(replyIndex < bridgeIndex);
+  assert.ok(selfUpdateIndex < bridgeIndex);
+});
+
+test("self-update --yes runs the configured updater for published installs", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-self-update-"));
+  const stateFile = join(dir, "update-state.json");
+  const marker = join(dir, "updated.txt");
+  const updater = join(dir, "fake-update.mjs");
+  await writeFile(updater, `import { writeFileSync } from 'node:fs'; writeFileSync(${JSON.stringify(marker)}, 'ok');`, "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "self-update", "--yes"], {
+    cwd: dir,
+    env: {
+      ...process.env,
+      CODEX_CHANNELS_UPDATE_STATE_FILE: stateFile,
+      CODEX_CHANNELS_LATEST_VERSION: "0.1.99",
+      CODEX_CHANNELS_INSTALL_CONTEXT: "published-package",
+      CODEX_CHANNELS_UPDATE_COMMAND: process.execPath,
+      CODEX_CHANNELS_UPDATE_ARGS: updater,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.match(stdout, /Updated codex-channels to v0.1.99/);
+  assert.equal(await readFile(marker, "utf8"), "ok");
+
+  await rm(dir, { recursive: true, force: true });
 });
 
 test("submit publishes one interaction and returns the resolved response", async () => {
@@ -268,7 +428,7 @@ test("doctor reports runtime reachability and next steps", async () => {
   const stateFile = join(dir, "state.json");
   const port = await getFreePort();
 
-  const child = spawn(process.execPath, [cliEntry, "doctor", "--port", String(port), "--state-file", stateFile], {
+  const child = spawn(process.execPath, [cliEntry, "doctor", "--port", String(port), "--state-file", stateFile, "--no-update-check"], {
     stdio: ["ignore", "pipe", "pipe"],
   });
 

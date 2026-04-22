@@ -17,8 +17,8 @@ What this does:
 - generates a user-level `~/plugins/codex-channels` plugin root
 - registers that plugin source for Codex
 
-When run interactively, `plugin-bootstrap` can ask whether you want
-user-level or workspace-local installation. For a global CLI install,
+When run interactively, `plugin-bootstrap` now shows an arrow-key menu
+for user-level vs workspace-local installation. For a global CLI install,
 user-level is the recommended default.
 
 After that:
@@ -61,3 +61,18 @@ Or use the local repo build directly:
 ```bash
 node packages/cli/dist/index.js serve --port 4317 --state-file .codex-channels/state.json
 ```
+
+## Updating later
+
+The CLI can surface interactive update notices on the default help
+screen. Use arrow keys + Enter to choose between updating immediately,
+skipping once, or skipping until a newer version is published.
+
+You can also run:
+
+```bash
+codex-channels self-update
+```
+
+If you are running from a source checkout, the command prints the manual
+update path instead of mutating the checkout automatically.

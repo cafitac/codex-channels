@@ -41,9 +41,10 @@ codex-channels plugin-bootstrap
 Then restart Codex so it can rediscover the user-level plugin wrapper
 and MCP surface.
 
-If you run `plugin-bootstrap` in an interactive shell, it can ask
-whether you want user-level or workspace-local installation. For most
-global installs, user-level is the recommended default.
+If you run `plugin-bootstrap` in an interactive shell, it now uses an
+arrow-key menu so you can choose between user-level and workspace-local
+installation with Enter. For most global installs, user-level is the
+recommended default.
 
 ### Try it inside Codex first
 
@@ -59,6 +60,25 @@ codex-channels demo
 
 `demo` intentionally waits for a real reply so you can see the full
 publish → inspect → reply → resolve loop.
+
+### Keep the CLI updated
+
+On the default interactive help screen, the CLI can check for a newer
+published npm version and show an arrow-key menu:
+
+- Update now
+- Skip
+- Skip until next version
+
+You can also trigger the updater directly:
+
+```bash
+codex-channels self-update
+```
+
+If the CLI is running from a source checkout instead of a published npm
+install, `self-update` prints the shortest manual update steps instead of
+trying to mutate the checkout automatically.
 
 ### Inspect and reply to interactions
 
@@ -179,6 +199,7 @@ codex-channels reply --id <interaction-id> --text staging
 
 ```bash
 codex-channels doctor
+codex-channels self-update
 codex-channels demo
 codex-channels inspect
 codex-channels reply --id <interaction-id> --text staging

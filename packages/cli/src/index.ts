@@ -2,11 +2,12 @@
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { homedir } from "node:os";
-import { createInterface } from "node:readline/promises";
 import { LocalHttpChannelServer, LocalMemoryBackend } from "@cafitac/codex-channels-backend-local";
 import { Interaction, InteractionRuntime, InteractionStatus, createInteraction } from "@cafitac/codex-channels-core";
 import { JsonFileInteractionPersistence } from "@cafitac/codex-channels-persistence-file";
 import { CodexInteractionBridge, CodexJsonRpcLoop, SpawnedCodexAppServerLoop } from "@cafitac/codex-channels-transport-codex-app-server";
+import { MenuOption, selectFromMenu, supportsInteractiveMenu } from "./interactive.js";
+import { buildSelfUpdatePlan, checkForUpdates, dismissVersion, runSelfUpdatePlan } from "./updates.js";
 
 function readFlag(argv: string[], name: string, fallback: string): string {
   const index = argv.indexOf(name);
@@ -393,13 +394,13 @@ async function ensurePluginSourcePath(scope: string, requestedPluginPath: string
     const linkPath = resolve("plugins/codex-channels");
     await rm(linkPath, { recursive: true, force: true });
     await writeGeneratedPluginRoot(linkPath, cliEntry, runtime);
-    return './plugins/codex-channels';
+    return "./plugins/codex-channels";
   }
-  const userPluginsDir = resolve(homedir(), 'plugins');
-  const linkPath = resolve(userPluginsDir, 'codex-channels');
+  const userPluginsDir = resolve(homedir(), "plugins");
+  const linkPath = resolve(userPluginsDir, "codex-channels");
   await rm(linkPath, { recursive: true, force: true });
   await writeGeneratedPluginRoot(linkPath, cliEntry, runtime);
-  return './plugins/codex-channels';
+  return "./plugins/codex-channels";
 }
 
 async function resolveBootstrapScope(argv: string[]) {
@@ -407,22 +408,29 @@ async function resolveBootstrapScope(argv: string[]) {
   if (explicit) {
     return readFlag(argv, "--scope", "user");
   }
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+  if (!supportsInteractiveMenu(process.stdin, process.stderr)) {
     return "user";
   }
 
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  try {
-    const answer = (await rl.question("Install codex-channels for all Codex workspaces or just this workspace? [U/w] ")).trim().toLowerCase();
-    return answer === "w" || answer === "workspace" ? "workspace" : "user";
-  } finally {
-    rl.close();
-  }
+  const options: MenuOption<string>[] = [
+    {
+      label: "User",
+      description: "Install for all Codex workspaces on this machine (Recommended)",
+      value: "user",
+    },
+    {
+      label: "Workspace",
+      description: "Install only for this repository",
+      value: "workspace",
+    },
+  ];
+
+  return await selectFromMenu(process.stdin, process.stderr, "Choose where to install codex-channels:", options);
 }
 
 async function runPluginBootstrap(argv: string[]) {
   const scope = await resolveBootstrapScope(argv);
-  const requestedPluginPath = argv.includes('--plugin-path') ? readFlag(argv, '--plugin-path', '') : null;
+  const requestedPluginPath = argv.includes("--plugin-path") ? readFlag(argv, "--plugin-path", "") : null;
   const cliEntry = resolve(process.argv[1] ?? "./dist/index.js");
   const pluginPath = await ensurePluginSourcePath(scope, requestedPluginPath, cliEntry, {
     host: readFlag(argv, "--host", process.env.CODEX_CHANNELS_HOST ?? "127.0.0.1"),
@@ -467,8 +475,137 @@ async function runPluginBootstrap(argv: string[]) {
   }, null, 2));
 }
 
+function shouldAutoCheckForUpdates(command: string, argv: string[]): boolean {
+  if (hasFlag(argv, "--no-update-check")) return false;
+  if (command === "doctor" && hasFlag(argv, "--json")) return false;
+  return command === "help";
+}
+
+async function promptForUpdate(command: string, argv: string[]) {
+  if (!shouldAutoCheckForUpdates(command, argv)) {
+    return false;
+  }
+  if (!supportsInteractiveMenu(process.stdin, process.stderr)) {
+    return false;
+  }
+
+  let availability;
+  try {
+    availability = await checkForUpdates();
+  } catch {
+    return false;
+  }
+  if (!availability) {
+    return false;
+  }
+
+  const action = await selectFromMenu(process.stdin, process.stderr, `Update available: v${availability.currentVersion} → v${availability.latestVersion}`,
+    [
+      { label: "Update now", description: "Install the latest published CLI", value: "update" },
+      { label: "Skip", description: "Continue without updating this time", value: "skip" },
+      { label: "Skip until next version", description: "Do not ask again for this version", value: "skip-version" },
+    ]);
+
+  if (action === "skip") {
+    return false;
+  }
+  if (action === "skip-version") {
+    await dismissVersion(availability.latestVersion, availability.stateFile);
+    return false;
+  }
+
+  const plan = buildSelfUpdatePlan(availability);
+  if (!plan.canAutoRun) {
+    process.stderr.write(`\nA newer version is available, but this CLI is running from a source checkout (${plan.reason}).\n`);
+    process.stderr.write("Use one of these update paths:\n");
+    for (const step of plan.manualSteps) {
+      process.stderr.write(`  - ${step}\n`);
+    }
+    return true;
+  }
+
+  process.stderr.write(`\nUpdating codex-channels to v${availability.latestVersion}...\n`);
+  const result = await runSelfUpdatePlan(plan);
+  if (!result.ok) {
+    process.stderr.write("Automatic update failed. Try the manual command instead:\n");
+    for (const step of plan.manualSteps) {
+      process.stderr.write(`  - ${step}\n`);
+    }
+    return true;
+  }
+
+  process.stderr.write("Update complete. Rerun your previous command with the refreshed CLI.\n");
+  return true;
+}
+
+async function runSelfUpdate(argv: string[]) {
+  const availability = await checkForUpdates({ force: true, ignoreDismissed: true });
+  if (!availability) {
+    process.stdout.write("codex-channels is already up to date.\n");
+    return;
+  }
+
+  const plan = buildSelfUpdatePlan(availability);
+  if (hasFlag(argv, "--yes")) {
+    if (!plan.canAutoRun) {
+      process.stdout.write(`Automatic update is unavailable (${plan.reason ?? "manual path required"}).\n`);
+      for (const step of plan.manualSteps) {
+        process.stdout.write(`- ${step}\n`);
+      }
+      process.exitCode = 1;
+      return;
+    }
+    const result = await runSelfUpdatePlan(plan);
+    if (!result.ok) {
+      throw new Error("self-update failed");
+    }
+    process.stdout.write(`Updated codex-channels to v${availability.latestVersion}.\n`);
+    return;
+  }
+
+  if (supportsInteractiveMenu(process.stdin, process.stderr)) {
+    const action = await selectFromMenu(process.stdin, process.stderr, `Update available: v${availability.currentVersion} → v${availability.latestVersion}`,
+      [
+        { label: "Update now", description: "Install the latest published CLI", value: "update" },
+        { label: "Skip", description: "Leave the current version unchanged", value: "skip" },
+        { label: "Skip until next version", description: "Do not ask again for this version", value: "skip-version" },
+      ]);
+
+    if (action === "skip") {
+      process.stdout.write("Skipped update.\n");
+      return;
+    }
+    if (action === "skip-version") {
+      await dismissVersion(availability.latestVersion, availability.stateFile);
+      process.stdout.write(`Will skip prompts for v${availability.latestVersion} until a newer version is published.\n`);
+      return;
+    }
+  }
+
+  if (!plan.canAutoRun) {
+    process.stdout.write(`Automatic update is unavailable (${plan.reason ?? "manual path required"}).\n`);
+    for (const step of plan.manualSteps) {
+      process.stdout.write(`- ${step}\n`);
+    }
+    return;
+  }
+
+  const result = await runSelfUpdatePlan(plan);
+  if (!result.ok) {
+    throw new Error("self-update failed");
+  }
+  process.stdout.write(`Updated codex-channels to v${availability.latestVersion}.\n`);
+}
+
 async function main(argv: string[]) {
   const command = argv[2] ?? "help";
+
+  if (command !== "self-update" && command !== "upgrade") {
+    const consumed = await promptForUpdate(command, argv);
+    if (consumed) {
+      return;
+    }
+  }
 
   if (command === "serve") {
     await runServe(argv);
@@ -520,7 +657,12 @@ async function main(argv: string[]) {
     return;
   }
 
-  console.log(`codex-channels\n\nCommands:\n  doctor            Check the local runtime and show the next useful commands\n  demo              Start a demo interaction and wait for a reply\n  inspect           Read the local interaction state file and list current interactions\n  reply             Reply to one interaction on the running local runtime\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Generate a Codex plugin wrapper and register it in the marketplace\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --id <interaction-id>      Target interaction for inspect/reply\n  --status <status>          Filter inspect output by interaction status\n  --text <value>             Reply value for reply/submit flows\n  --accept                   Send an accept reply\n  --decline                  Send a decline reply\n  --cancel                   Cancel the interaction\n  --timeout-ms <ms>          Bridge or demo interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: user | workspace (prompts when omitted in interactive shells; defaults to user otherwise)\n  --plugin-path <path>       explicit plugin root to generate and register\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --json                     Emit JSON output for inspect\n  --quiet                    Suppress bridge startup metadata on stderr`);
+  if (command === "self-update" || command === "upgrade") {
+    await runSelfUpdate(argv);
+    return;
+  }
+
+  console.log(`codex-channels\n\nCommands:\n  doctor            Check the local runtime and show the next useful commands\n  demo              Start a demo interaction and wait for a reply\n  inspect           Read the local interaction state file and list current interactions\n  reply             Reply to one interaction on the running local runtime\n  self-update       Check for a newer published CLI version and install it\n  serve             Start the local-first HTTP runtime\n  status            Query a running local runtime\n  submit            Start the local runtime, publish one interaction, and wait for a response\n  bridge-stdio      Run the Codex interaction bridge over stdin/stdout while hosting a local channel runtime\n  bridge-spawn      Start the local runtime and spawn a Codex app-server-compatible child process to bridge interactive requests\n  plugin-bootstrap  Generate a Codex plugin wrapper and register it in the marketplace\n\nFlags:\n  --host <host>              Bind/query host (default 127.0.0.1)\n  --port <port>              Bind/query port (default 4317)\n  --state-file <path>        File-backed interaction state (default .codex-channels/state.json)\n  --interaction-file <path>  JSON file containing one interaction payload for submit\n  --id <interaction-id>      Target interaction for inspect/reply\n  --status <status>          Filter inspect output by interaction status\n  --text <value>             Reply value for reply/submit flows\n  --accept                   Send an accept reply\n  --decline                  Send a decline reply\n  --cancel                   Cancel the interaction\n  --timeout-ms <ms>          Bridge or demo interaction timeout (default 300000)\n  --codex-command <cmd>      Command used by bridge-spawn (default codex)\n  --codex-arg <arg>          Additional argument for bridge-spawn; may be repeated\n  --spawn-mode <mode>        app-server | raw (default app-server)\n  --scope <scope>            plugin-bootstrap scope: user | workspace (prompts with an arrow-key menu when interactive; defaults to user otherwise)\n  --plugin-path <path>       explicit plugin root to generate and register\n  --marketplace-file <path>  plugin-bootstrap target marketplace.json\n  --no-update-check          Skip automatic update prompts for this run\n  --yes                      Apply self-update without prompting\n  --json                     Emit JSON output for inspect\n  --quiet                    Suppress bridge startup metadata on stderr`);
 }
 
 main(process.argv).catch((error) => {
