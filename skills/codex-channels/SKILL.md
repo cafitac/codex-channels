@@ -134,3 +134,8 @@ Additional watch guidance:
 Additional follow guidance:
 - Use `follow --text ...` when you want low-noise monitoring plus the ability to resolve the next actionable request automatically once it appears.
 - If you omit `--text`, prefer plain `watch` so the command stays observation-only.
+
+Scoped monitoring guidance:
+- Use `--source <name>` when you only care about one producer such as `codex-channels-demo`.
+- Use `--kind <kind>` when you only care about one interaction shape such as `user_input_request`.
+- Use `--focus-id <id>` when you want watch/follow behavior pinned to one specific interaction.

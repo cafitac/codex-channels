@@ -11,3 +11,9 @@ Preferred command:
 ```bash
 codex-channels follow --text staging
 ```
+
+Scoped examples:
+```bash
+codex-channels follow --source codex-channels-demo --text staging
+codex-channels follow --focus-id demo-1234 --text staging
+```

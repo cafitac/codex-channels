@@ -13,3 +13,10 @@ codex-channels watch
 ```
 
 If you want the watch loop to resolve the next actionable request once it appears, use `channels-follow` / `codex-channels follow --text ...` instead.
+
+Scoped examples:
+```bash
+codex-channels watch --source codex-channels-demo
+codex-channels watch --kind user_input_request
+codex-channels watch --focus-id demo-1234
+```

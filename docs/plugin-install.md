@@ -194,3 +194,7 @@ Watch mode uses change-only output by default so Codex sessions do not accumulat
 Watch mode also prints a compact `hint:` line with the current best next operator command.
 
 - `channels-follow` / `codex-channels follow --text ...` — low-noise monitoring that can immediately resolve the next actionable request once it appears
+
+Watch/follow also support `--source`, `--kind`, and `--focus-id` so Codex-guided sessions can narrow monitoring to one request family.
+
+Current update guidance is best-effort and printed on stderr for human-facing commands so machine-readable stdout remains stable.

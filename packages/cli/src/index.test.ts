@@ -138,7 +138,53 @@ test("explicit self-update ignores dismissed-version state", async () => {
   const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
   assert.equal(exitCode, 0);
   assert.match(stdout, /Updated codex-channels to v0.1.99/);
+  assert.match(stdout, /Next: codex-channels plugin-bootstrap/);
   assert.equal(await readFile(marker, "utf8"), "ok");
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("doctor reports installed and latest versions plus update guidance", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-doctor-update-"));
+  const stateFile = join(dir, "state.json");
+
+  const child = spawn(process.execPath, [cliEntry, "doctor", "--state-file", stateFile, "--no-update-check"], {
+    stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, CODEX_CHANNELS_LATEST_VERSION: "9.9.9", CODEX_CHANNELS_INSTALL_CONTEXT: "published-package", CODEX_CHANNELS_UPDATE_STATE_FILE: join(dir, "update-state.json") },
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => { stdout += chunk.toString(); });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  const payload = JSON.parse(stdout.trim()) as { installedVersion?: string|null; latestVersion?: string|null; updateAvailable?: boolean|null; updateNext?: string[] };
+  assert.equal(typeof payload.installedVersion, "string");
+  assert.equal(payload.latestVersion, "9.9.9");
+  assert.equal(payload.updateAvailable, true);
+  assert.match(payload.updateNext?.[0] ?? "", /npm install -g/);
+  assert.match(payload.updateNext?.[1] ?? "", /plugin-bootstrap/);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("plugin-bootstrap prints an update hint to stderr when a newer version exists", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-bootstrap-update-hint-"));
+  const marketplaceFile = join(dir, ".agents", "plugins", "marketplace.json");
+
+  const child = spawn(process.execPath, [cliEntry, "plugin-bootstrap", "--scope", "workspace", "--plugin-path", ".", "--marketplace-file", marketplaceFile], {
+    cwd: dir,
+    stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, CODEX_CHANNELS_LATEST_VERSION: "9.9.9", CODEX_CHANNELS_INSTALL_CONTEXT: "published-package", CODEX_CHANNELS_UPDATE_STATE_FILE: join(dir, "update-state.json") },
+  });
+
+  let stderr = "";
+  child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.match(stderr, /\[CODEX-CHANNELS\] Update available:/);
+  assert.match(stderr, /plugin-bootstrap/);
 
   await rm(dir, { recursive: true, force: true });
 });
@@ -149,6 +195,7 @@ test("buildSelfUpdatePlan auto-runs for published installs and falls back for so
     latestVersion: "0.1.11",
     stateFile: "/tmp/state.json",
     installContext: "published-package",
+    checkedAt: "2026-01-01T00:00:00.000Z",
   });
   assert.equal(published.canAutoRun, true);
   assert.deepEqual(published.args, ["install", "-g", "@cafitac/codex-channels@latest"]);
@@ -158,6 +205,7 @@ test("buildSelfUpdatePlan auto-runs for published installs and falls back for so
     latestVersion: "0.1.11",
     stateFile: "/tmp/state.json",
     installContext: "source-checkout",
+    checkedAt: "2026-01-01T00:00:00.000Z",
   });
   assert.equal(source.canAutoRun, false);
   assert.match(source.manualSteps[0] ?? "", /git pull/);
@@ -248,6 +296,105 @@ test("bridge-spawn boots the local runtime and reports startup metadata", async 
 
 
 
+
+
+test("operator-status respects source and kind filters", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-operator-filter-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({
+    interactions: [
+      {
+        id: "demo-request",
+        kind: "user_input_request",
+        source: { type: "system", name: "codex-channels-demo" },
+        payload: { message: "Demo request" },
+        createdAt: "2026-01-01T00:00:02.000Z",
+        status: "pending",
+      },
+      {
+        id: "other-request",
+        kind: "approval_request",
+        source: { type: "system", name: "other-source" },
+        payload: { message: "Other request" },
+        createdAt: "2026-01-01T00:00:03.000Z",
+        status: "pending",
+      }
+    ]
+  }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "operator-status", "--state-file", stateFile, "--source", "codex-channels-demo", "--kind", "user_input_request"], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.match(stdout, /demo-request/);
+  assert.equal(stdout.includes("other-request"), false);
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("follow can scope to a specific interaction id", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-follow-focus-"));
+  const stateFile = join(dir, "state.json");
+  const port = await getFreePort();
+
+  await writeFile(stateFile, JSON.stringify({
+    interactions: [
+      {
+        id: "follow-target",
+        kind: "user_input_request",
+        source: { type: "system", name: "test" },
+        payload: { message: "Target request" },
+        createdAt: "2026-01-01T00:00:01.000Z",
+        status: "pending",
+      },
+      {
+        id: "follow-other",
+        kind: "user_input_request",
+        source: { type: "system", name: "test" },
+        payload: { message: "Other request" },
+        createdAt: "2026-01-01T00:00:02.000Z",
+        status: "pending",
+      }
+    ]
+  }), "utf8");
+
+  const serverChild = spawn(process.execPath, [cliEntry, "serve", "--port", String(port), "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let serverStdout = "";
+  serverChild.stdout.on("data", (chunk) => {
+    serverStdout += chunk.toString();
+  });
+
+  try {
+    await waitFor(() => serverStdout.includes('"ok": true') || serverStdout.includes('"ok":true'), 2000, () => `serve startup timeout: ${serverStdout}`);
+
+    const child = spawn(process.execPath, [cliEntry, "follow", "--state-file", stateFile, "--port", String(port), "--focus-id", "follow-target", "--text", "staging", "--timeout-ms", "50"], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+    assert.equal(exitCode, 0);
+    assert.match(stdout, /auto-resolving follow-target/);
+    assert.equal(stdout.includes("follow-other"), false);
+  } finally {
+    serverChild.kill();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 
 test("follow resolves the next actionable interaction when text is provided", async () => {
   const dir = await mkdtemp(join(tmpdir(), "codex-channels-follow-"));
@@ -698,6 +845,8 @@ test("plugin-bootstrap defaults to user scope and generates a plugin root plus c
   assert.match(canonicalContent, /next-step/);
   assert.match(canonicalContent, /channels-watch/);
   assert.match(canonicalContent, /channels-follow/);
+  assert.match(canonicalContent, /--source/);
+  assert.match(canonicalContent, /--focus-id/);
   assert.match(canonicalContent, /Execution-first rule/);
   assert.match(operatorStatusContent, /\[CODEX-CHANNELS\]/);
   assert.match(canonicalContent, /\$codex-channels doctor/);
@@ -766,6 +915,7 @@ test("self-update --yes runs the configured updater for published installs", asy
   const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
   assert.equal(exitCode, 0);
   assert.match(stdout, /Updated codex-channels to v0.1.99/);
+  assert.match(stdout, /Next: codex-channels plugin-bootstrap/);
   assert.equal(await readFile(marker, "utf8"), "ok");
 
   await rm(dir, { recursive: true, force: true });

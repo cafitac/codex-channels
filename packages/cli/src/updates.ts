@@ -18,6 +18,7 @@ export type UpdateAvailability = {
   latestVersion: string;
   stateFile: string;
   installContext: "source-checkout" | "published-package";
+  checkedAt: string;
 };
 
 export type SelfUpdatePlan = {
@@ -119,8 +120,9 @@ export async function checkForUpdates(options: { force?: boolean; ignoreDismisse
     return null;
   }
 
+  const checkedAt = new Date().toISOString();
   const latestVersion = await fetchLatestVersion();
-  await writeUpdateState({ ...state, lastCheckedAt: new Date().toISOString() }, stateFile);
+  await writeUpdateState({ ...state, lastCheckedAt: checkedAt }, stateFile);
 
   if (compareVersions(latestVersion, currentVersion) <= 0) {
     return null;
@@ -134,7 +136,32 @@ export async function checkForUpdates(options: { force?: boolean; ignoreDismisse
     latestVersion,
     stateFile,
     installContext: await detectInstallContext(),
+    checkedAt,
   };
+}
+
+export function formatUpdateCommand() {
+  return `npm install -g ${CLI_PACKAGE_NAME}@latest`;
+}
+
+export function buildUpdateHintLines(availability: UpdateAvailability): string[] {
+  const lines = [
+    `[CODEX-CHANNELS] Update available: v${availability.currentVersion} -> v${availability.latestVersion}`,
+  ];
+
+  if (availability.installContext === "source-checkout") {
+    lines.push("Run: git pull && npm install && npm run build");
+  } else {
+    lines.push(`Run: ${formatUpdateCommand()}`);
+  }
+  lines.push("Then: codex-channels plugin-bootstrap");
+  return lines;
+}
+
+export async function getLatestVersionSnapshot() {
+  const currentVersion = await readCurrentVersion();
+  const latestVersion = await fetchLatestVersion();
+  return { currentVersion, latestVersion, installContext: await detectInstallContext() };
 }
 
 export async function dismissVersion(latestVersion: string, stateFile = resolveUpdateStateFile()): Promise<void> {

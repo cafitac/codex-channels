@@ -123,3 +123,12 @@ When you want the monitor to resolve the next actionable request as soon as it a
 ```bash
 codex-channels follow --text staging
 ```
+
+Scoped follow examples:
+
+```bash
+codex-channels watch --source codex-channels-demo
+codex-channels follow --focus-id demo-1234 --text staging
+```
+
+If you are behind the latest published version, `doctor` and `plugin-bootstrap` will print a compact `[CODEX-CHANNELS] Update available ...` hint and tell you to rerun `codex-channels plugin-bootstrap` after updating.

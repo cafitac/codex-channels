@@ -280,6 +280,7 @@ npm run preflight:ci
 - [v0.1.22 release notes](./docs/releases/v0.1.22.md)
 - [v0.1.23 release notes](./docs/releases/v0.1.23.md)
 - [v0.1.24 release notes](./docs/releases/v0.1.24.md)
+- [v0.1.25 release notes](./docs/releases/v0.1.25.md)
 
 ## License
 
@@ -298,3 +299,7 @@ It prints the initial summary once and then only prints again when runtime reach
 Watch mode now includes a compact `hint:` line with the current best next command whenever it emits a summary.
 
 When you want low-noise monitoring plus automatic resolution of the next request once it appears, use `codex-channels follow --text ...`.
+
+You can narrow `watch` and `follow` to one source, kind, or interaction id with `--source`, `--kind`, or `--focus-id`.
+
+When a newer published version exists, human-facing commands such as `doctor` and `plugin-bootstrap` now print a compact `[CODEX-CHANNELS] Update available ...` hint on stderr, plus the exact update and re-bootstrap commands.

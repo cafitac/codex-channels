@@ -4,6 +4,13 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.25 - 2026-04-22
+
+- Print compact update hints on human-facing commands and include installed/latest version info in `doctor`.
+- Add source/kind/id filters to watch, follow, and operator-status so Codex-guided monitoring can be narrowed to one request family.
+
+- Print compact update hints on human-facing commands and include installed/latest version info in `doctor`.
+- Add source/kind/id filters to watch and follow so Codex-guided monitoring can be narrowed to one request family.
 ## 0.1.24 - 2026-04-22
 
 - Add a low-noise `follow` mode plus `channels-follow` shortcut skill so Codex-guided sessions can quietly resolve the next actionable request when reply text is provided.
