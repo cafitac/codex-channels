@@ -4,6 +4,10 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.21 - 2026-04-22
+
+- Add a low-noise `watch` mode plus `channels-watch` shortcut skill so Codex-guided sessions only surface meaningful state changes.
+
 - Add a low-noise `watch` mode that prints the first summary immediately and then only reports meaningful state changes.
 ## 0.1.20 - 2026-04-22
 
