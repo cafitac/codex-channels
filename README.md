@@ -257,6 +257,7 @@ npm run preflight:ci
 - [Release checklist](./docs/release-checklist.md)
 - [v0.1.9 release notes](./docs/releases/v0.1.9.md)
 - [v0.1.10 release notes](./docs/releases/v0.1.10.md)
+- [v0.1.11 release notes](./docs/releases/v0.1.11.md)
 
 ## License
 
