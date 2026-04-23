@@ -9,7 +9,13 @@ import { LocalMemoryBackend } from "@cafitac/codex-channels-backend-local";
 import {
   CodexInteractionBridge,
   CodexJsonRpcLoop,
+  HERMIT_CODEX_APP_SERVER_RESPONSE_MODE_ENV,
+  HERMIT_CODEX_APP_SERVER_WRITER_ENCODING_ENV,
+  HERMIT_CODEX_APP_SERVER_WRITER_FD_ENV,
   SpawnedCodexAppServerLoop,
+  SpawnedHermitCodexAppServerLoop,
+  buildHermitCodexAppServerWriterEnv,
+  buildHermitCodexAppServerWriterStdio,
   mapCodexRequestToInteraction,
   mapInteractionResponseToCodexResult,
   mapServerRequestResolved,
@@ -124,6 +130,26 @@ test("json-rpc loop writes bridge responses for interactive requests", async () 
   assert.deepEqual(parsed, { id: 88, result: { answers: { target: { answers: ["prod"] } } } });
 });
 
+test("builds Hermit writer env with fd and encoding defaults", () => {
+  const env = buildHermitCodexAppServerWriterEnv({
+    writerFd: 5,
+    encoding: "utf-16le",
+    env: { PATH: "/tmp/bin" },
+  });
+
+  assert.equal(env.PATH, "/tmp/bin");
+  assert.equal(env[HERMIT_CODEX_APP_SERVER_WRITER_FD_ENV], "5");
+  assert.equal(env[HERMIT_CODEX_APP_SERVER_WRITER_ENCODING_ENV], "utf-16le");
+  assert.equal(env[HERMIT_CODEX_APP_SERVER_RESPONSE_MODE_ENV], "stdin");
+});
+
+test("builds Hermit writer stdio with a piped extra fd", () => {
+  assert.deepEqual(
+    buildHermitCodexAppServerWriterStdio(5),
+    ["pipe", "pipe", "pipe", "ignore", "ignore", "pipe"],
+  );
+});
+
 test("spawned loop can bridge a raw child process that emits interactive requests", async () => {
   const dir = await mkdtemp(join(tmpdir(), 'codex-channels-transport-'));
   const script = join(dir, 'fake-server.mjs');
@@ -149,6 +175,54 @@ process.stdin.on('data', (chunk) => {
       interactionId: 'codex-41',
       action: 'text',
       values: ['stage'],
+      respondedAt: new Date().toISOString(),
+    });
+  }, 50);
+
+  await running;
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("spawned Hermit loop can read requests from the injected writer fd", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-hermit-transport-"));
+  const script = join(dir, "fake-hermit.mjs");
+  await writeFile(
+    script,
+    `
+import fs from 'node:fs';
+const writerFd = Number(process.env.HERMIT_CODEX_APP_SERVER_WRITER_FD || "3");
+fs.writeSync(writerFd, JSON.stringify({
+  id: 55,
+  method: 'item/tool/requestUserInput',
+  params: {
+    threadId: 'thr_hermit',
+    turnId: 'turn_hermit',
+    questions: [{ id: 'target', question: 'Where?' }],
+  },
+}) + '\\n');
+process.stdin.once('data', (chunk) => {
+  const msg = JSON.parse(String(chunk).trim());
+  process.exit(msg.result?.answers?.target?.answers?.[0] === 'stage' ? 0 : 1);
+});
+`,
+    "utf8",
+  );
+
+  const runtime = new InteractionRuntime(new LocalMemoryBackend());
+  const bridge = new CodexInteractionBridge(runtime, { timeoutMs: 1000 });
+  const loop = new SpawnedHermitCodexAppServerLoop(bridge, {
+    command: process.execPath,
+    args: [script],
+    env: {},
+    writerFd: 3,
+  });
+
+  const running = loop.start();
+  setTimeout(() => {
+    void runtime.resolve({
+      interactionId: "codex-55",
+      action: "text",
+      values: ["stage"],
       respondedAt: new Date().toISOString(),
     });
   }, 50);

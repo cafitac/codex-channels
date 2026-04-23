@@ -1,4 +1,4 @@
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawn, type ChildProcess, type StdioOptions } from "node:child_process";
 import { createInterface } from "node:readline";
 import { Writable } from "node:stream";
 import {
@@ -29,6 +29,11 @@ export interface JsonRpcErrorMessage {
   id: string | number;
   error: { code: number; message: string };
 }
+
+export const HERMIT_CODEX_APP_SERVER_WRITER_FD_ENV = "HERMIT_CODEX_APP_SERVER_WRITER_FD";
+export const HERMIT_CODEX_APP_SERVER_WRITER_PATH_ENV = "HERMIT_CODEX_APP_SERVER_WRITER_PATH";
+export const HERMIT_CODEX_APP_SERVER_WRITER_ENCODING_ENV = "HERMIT_CODEX_APP_SERVER_WRITER_ENCODING";
+export const HERMIT_CODEX_APP_SERVER_RESPONSE_MODE_ENV = "HERMIT_CODEX_APP_SERVER_RESPONSE_MODE";
 
 function option(label: string, value = label): ChannelOption {
   return { label, value };
@@ -209,6 +214,46 @@ export function normalizeResponseValues(input: unknown): string[] {
   return maybeArray(input);
 }
 
+export function buildHermitCodexAppServerWriterEnv(options: {
+  writerFd?: number;
+  encoding?: string;
+  responseMode?: string;
+  env?: NodeJS.ProcessEnv;
+} = {}): NodeJS.ProcessEnv {
+  const { writerFd = 3, encoding = "utf-8", responseMode = "stdin", env = process.env } = options;
+  return {
+    ...env,
+    [HERMIT_CODEX_APP_SERVER_WRITER_FD_ENV]: String(writerFd),
+    [HERMIT_CODEX_APP_SERVER_WRITER_ENCODING_ENV]: encoding,
+    [HERMIT_CODEX_APP_SERVER_RESPONSE_MODE_ENV]: responseMode,
+  };
+}
+
+export function buildHermitCodexAppServerWriterStdio(writerFd = 3): StdioOptions {
+  const stdio: Array<"pipe" | "ignore"> = ["pipe", "pipe", "pipe"];
+  while (stdio.length < writerFd) {
+    stdio.push("ignore");
+  }
+  stdio.push("pipe");
+  return stdio;
+}
+
+function resolveHermitCodexAppServerWriterStream(process: ChildProcess, writerFd = 3): NodeJS.ReadableStream {
+  const stream = process.stdio[writerFd];
+  if (!stream) {
+    throw new Error(`Hermit writer fd ${writerFd} is not available on the spawned process`);
+  }
+  return stream as NodeJS.ReadableStream;
+}
+
+function createDiscardWritable(): Writable {
+  return new Writable({
+    write(_chunk, _encoding, callback) {
+      callback();
+    },
+  });
+}
+
 export class CodexInteractionBridge {
   constructor(
     readonly runtime: InteractionRuntime,
@@ -275,7 +320,7 @@ export class CodexJsonRpcLoop {
 }
 
 export class SpawnedCodexAppServerLoop {
-  #process?: ChildProcessWithoutNullStreams;
+  #process?: ChildProcess;
   #loop?: CodexJsonRpcLoop;
 
   constructor(
@@ -298,6 +343,9 @@ export class SpawnedCodexAppServerLoop {
       cwd: this.options.cwd,
       stdio: ["pipe", "pipe", "pipe"],
     });
+    if (!this.#process.stdout || !this.#process.stdin) {
+      throw new Error("spawned Codex process does not expose stdio pipes");
+    }
     this.#loop = new CodexJsonRpcLoop(bridgeWithRuntime(this.bridge), this.#process.stdout, this.#process.stdin);
     return this.#loop.run();
   }
@@ -310,4 +358,50 @@ export class SpawnedCodexAppServerLoop {
 
 function bridgeWithRuntime(bridge: CodexInteractionBridge): CodexInteractionBridge {
   return bridge;
+}
+
+export class SpawnedHermitCodexAppServerLoop {
+  #process?: ChildProcess;
+  #loop?: CodexJsonRpcLoop;
+
+  constructor(
+    readonly bridge: CodexInteractionBridge,
+    readonly options: {
+      command?: string;
+      args?: string[];
+      cwd?: string;
+      env?: NodeJS.ProcessEnv;
+      writerFd?: number;
+      encoding?: string;
+      responseOutput?: Writable;
+    } = {},
+  ) {}
+
+  start() {
+    const command = this.options.command ?? "hermit-agent";
+    const writerFd = this.options.writerFd ?? 3;
+    const stdio = buildHermitCodexAppServerWriterStdio(writerFd);
+    this.#process = spawn(command, this.options.args ?? [], {
+      cwd: this.options.cwd,
+      env: buildHermitCodexAppServerWriterEnv({
+        writerFd,
+        encoding: this.options.encoding,
+        env: this.options.env,
+      }),
+      stdio,
+    });
+    const input = resolveHermitCodexAppServerWriterStream(this.#process, writerFd);
+    const responseOutput = this.options.responseOutput ?? this.#process.stdin ?? createDiscardWritable();
+    this.#loop = new CodexJsonRpcLoop(
+      bridgeWithRuntime(this.bridge),
+      input,
+      responseOutput,
+    );
+    return this.#loop.run();
+  }
+
+  stop() {
+    this.#loop?.close();
+    this.#process?.kill();
+  }
 }

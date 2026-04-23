@@ -4,6 +4,12 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.30 - 2026-04-23
+
+- Show the latest overall interaction in operator summaries so recent resolutions remain visible even when the newest actionable item is older.
+- Add Hermit writer-fd bridge support and smoke coverage for Codex-compatible Hermit request emission.
+- Ignore generated .agent-learner local state directories in the repo.
+
 ## 0.1.29 - 2026-04-23
 
 - Show the latest overall interaction in operator summaries so recent resolutions remain visible even when the newest actionable item is older.

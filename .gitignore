@@ -12,3 +12,9 @@ coverage/
 .agents/
 tests/
 plugins/
+.agent-learner/learning/inbox/
+.agent-learner/learning/drafts/
+.agent-learner/history/
+.agent-learner/events/
+.agent-learner/candidates/
+.agent-learner/state/
