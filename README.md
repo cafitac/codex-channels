@@ -282,6 +282,7 @@ npm run preflight:ci
 - [v0.1.24 release notes](./docs/releases/v0.1.24.md)
 - [v0.1.25 release notes](./docs/releases/v0.1.25.md)
 - [v0.1.26 release notes](./docs/releases/v0.1.26.md)
+- [v0.1.29 release notes](./docs/releases/v0.1.29.md)
 
 ## License
 
@@ -304,3 +305,5 @@ When you want low-noise monitoring plus automatic resolution of the next request
 You can narrow `watch` and `follow` to one source, kind, or interaction id with `--source`, `--kind`, or `--focus-id`.
 
 When a newer published version exists, human-facing commands such as `doctor` and `plugin-bootstrap` now print a compact `[CODEX-CHANNELS] Update available ...` hint on stderr, plus the exact update and re-bootstrap commands.
+
+`operator-status` now distinguishes the latest actionable interaction from the latest overall interaction so recently resolved items remain visible in the summary.

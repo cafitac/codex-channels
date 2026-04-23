@@ -139,3 +139,6 @@ Scoped monitoring guidance:
 - Use `--source <name>` when you only care about one producer such as `codex-channels-demo`.
 - Use `--kind <kind>` when you only care about one interaction shape such as `user_input_request`.
 - Use `--focus-id <id>` when you want watch/follow behavior pinned to one specific interaction.
+
+Latest-overall guidance:
+- `operator-status` can show a newer resolved interaction separately from the latest actionable one, which helps explain why the queue changed even if the newest actionable request is older.

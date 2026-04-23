@@ -9,6 +9,7 @@ Use this skill when you want the fastest high-signal status check before acting.
 - whether the runtime is reachable
 - how many actionable requests are waiting
 - the latest actionable interaction
+- the latest overall interaction, even if it was already resolved
 - the next best operator step
 
 Preferred command:

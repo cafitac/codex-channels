@@ -4,6 +4,11 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.29 - 2026-04-23
+
+- Show the latest overall interaction in operator summaries so recent resolutions remain visible even when the newest actionable item is older.
+
+- Show the latest overall interaction in operator summaries so recent resolutions remain visible even when the newest actionable item is older.
 ## 0.1.26 - 2026-04-22
 
 - Make operator flows sandbox-aware by reporting runtime probe failures separately from true unreachability and adding compact update/version guidance to human-facing commands.

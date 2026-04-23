@@ -132,3 +132,5 @@ codex-channels follow --focus-id demo-1234 --text staging
 ```
 
 If you are behind the latest published version, `doctor` and `plugin-bootstrap` will print a compact `[CODEX-CHANNELS] Update available ...` hint and tell you to rerun `codex-channels plugin-bootstrap` after updating.
+
+`operator-status` now also reports the latest overall interaction, even when the newest actionable request is older, so recent resolutions are easier to understand.

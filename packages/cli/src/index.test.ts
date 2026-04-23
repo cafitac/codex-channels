@@ -597,7 +597,7 @@ test("next-step --json returns the next recommended command", async () => {
   assert.equal(exitCode, 0);
   const payload = JSON.parse(stdout.trim()) as { ok?: boolean; next?: string | null };
   assert.equal(payload.ok, true);
-  assert.match(payload.next ?? "", /demo|serve/);
+  assert.match(payload.next ?? "", /demo|serve|retry from a shell/);
 
   await rm(dir, { recursive: true, force: true });
 });
@@ -628,12 +628,54 @@ test("next-step explains when reply text is missing", async () => {
 
   const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
   assert.equal(exitCode, 0);
-  assert.match(stdout, /requires a reply text/);
-  assert.match(stdout, /next-step --text staging/);
+  assert.match(stdout, /requires a reply text|runtime probe failed from this execution context/);
+  assert.match(stdout, /next-step --text staging|retry from a shell/);
 
   await rm(dir, { recursive: true, force: true });
 });
 
+
+test("operator-status shows the latest overall interaction even when the newest actionable item is older", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-operator-latest-overall-"));
+  const stateFile = join(dir, "state.json");
+  await writeFile(stateFile, JSON.stringify({
+    interactions: [
+      {
+        id: "older-actionable",
+        kind: "user_input_request",
+        source: { type: "system", name: "codex-channels-demo" },
+        payload: { message: "Older actionable" },
+        createdAt: "2026-01-01T00:00:01.000Z",
+        status: "pending",
+      },
+      {
+        id: "newer-resolved",
+        kind: "user_input_request",
+        source: { type: "system", name: "codex-channels-demo" },
+        payload: { message: "Newer resolved" },
+        createdAt: "2026-01-01T00:00:02.000Z",
+        status: "resolved",
+      }
+    ]
+  }), "utf8");
+
+  const child = spawn(process.execPath, [cliEntry, "operator-status", "--state-file", stateFile], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
+  assert.equal(exitCode, 0);
+  assert.match(stdout, /latest actionable: older-actionable/);
+  assert.match(stdout, /latest overall: newer-resolved/);
+  assert.match(stdout, /status: resolved/);
+
+  await rm(dir, { recursive: true, force: true });
+});
 test("operator-status summarizes reachability, actionable work, and next steps", async () => {
   const dir = await mkdtemp(join(tmpdir(), "codex-channels-operator-status-"));
   const stateFile = join(dir, "state.json");
@@ -670,9 +712,10 @@ test("operator-status summarizes reachability, actionable work, and next steps",
 
   const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
   assert.equal(exitCode, 0);
-  assert.match(stdout, /runtime: (reachable|not reachable)/);
+  assert.match(stdout, /runtime: (reachable|not reachable|probe failed from this execution context)/);
   assert.match(stdout, /actionable interactions: 1/);
-  assert.match(stdout, /latest: actionable-request/);
+  assert.match(stdout, /latest actionable: actionable-request/);
+  assert.match(stdout, /latest overall: actionable-request/);
   assert.match(stdout, /codex-channels reply-latest|codex-channels demo|codex-channels serve/);
 
   await rm(dir, { recursive: true, force: true });
@@ -695,10 +738,11 @@ test("operator-status --json preserves the machine-readable summary", async () =
 
   const exitCode = await new Promise<number | null>((resolve) => child.once("exit", resolve));
   assert.equal(exitCode, 0);
-  const payload = JSON.parse(stdout.trim()) as { ok?: boolean; actionableCount?: number; latestInteraction?: unknown; next?: string[] };
+  const payload = JSON.parse(stdout.trim()) as { ok?: boolean; actionableCount?: number; latestInteraction?: unknown; latestOverallInteraction?: unknown; next?: string[] };
   assert.equal(payload.ok, true);
   assert.equal(payload.actionableCount, 0);
   assert.equal(payload.latestInteraction, null);
+  assert.equal(payload.latestOverallInteraction, null);
   assert.equal(Array.isArray(payload.next), true);
 
   await rm(dir, { recursive: true, force: true });

@@ -126,6 +126,22 @@ function findLatestActionableInteraction(interactions: Interaction[]) {
   return sortInteractionsNewestFirst(filterActionableInteractions(interactions))[0];
 }
 
+function findLatestInteraction(interactions: Interaction[]) {
+  return sortInteractionsNewestFirst(interactions)[0];
+}
+
+function toOperatorSummaryInteraction(interaction: Interaction | undefined): OperatorSummaryInteraction | null {
+  return interaction
+    ? {
+        id: interaction.id,
+        kind: interaction.kind,
+        status: interaction.status,
+        source: interaction.source.name,
+        message: summarizeInteraction(interaction),
+      }
+    : null;
+}
+
 
 function filterInteractionsForScope(interactions: Interaction[], argv: string[]) {
   const idFilter = readFlag(argv, "--focus-id", "");
@@ -140,6 +156,14 @@ function filterInteractionsForScope(interactions: Interaction[], argv: string[])
 }
 
 
+type OperatorSummaryInteraction = {
+  id: string;
+  kind: string;
+  status: string;
+  source: string;
+  message: string;
+};
+
 type OperatorSummary = {
   ok: true;
   stateFile: string;
@@ -147,13 +171,8 @@ type OperatorSummary = {
   runtimeProbeStatus: "reachable" | "unreachable" | "probe-failed";
   runtimeProbeError: string | null;
   actionableCount: number;
-  latestInteraction: {
-    id: string;
-    kind: string;
-    status: string;
-    source: string;
-    message: string;
-  } | null;
+  latestInteraction: OperatorSummaryInteraction | null;
+  latestOverallInteraction: OperatorSummaryInteraction | null;
   next: string[];
 };
 
@@ -162,6 +181,7 @@ async function buildOperatorSummary(argv: string[]): Promise<OperatorSummary> {
   const scopedInteractions = filterInteractionsForScope(interactions, argv);
   const pending = sortInteractionsNewestFirst(filterActionableInteractions(scopedInteractions));
   const latest = pending[0];
+  const latestOverall = findLatestInteraction(scopedInteractions);
   const host = readFlag(argv, "--host", process.env.CODEX_CHANNELS_HOST ?? "127.0.0.1");
   const port = Number(readFlag(argv, "--port", process.env.CODEX_CHANNELS_PORT ?? "4317"));
   let runtimeReachable = false;
@@ -190,13 +210,8 @@ async function buildOperatorSummary(argv: string[]): Promise<OperatorSummary> {
     runtimeProbeStatus,
     runtimeProbeError,
     actionableCount: pending.length,
-    latestInteraction: latest ? {
-      id: latest.id,
-      kind: latest.kind,
-      status: latest.status,
-      source: latest.source.name,
-      message: summarizeInteraction(latest),
-    } : null,
+    latestInteraction: toOperatorSummaryInteraction(latest),
+    latestOverallInteraction: toOperatorSummaryInteraction(latestOverall),
     next: runtimeProbeStatus === "reachable"
       ? (latest
           ? [
@@ -239,13 +254,21 @@ function formatOperatorSummary(payload: OperatorSummary) {
     lines.push("note: the runtime may still be alive in another shell or blocked by sandbox/network policy in this execution context");
   }
   if (payload.latestInteraction) {
-    lines.push(`latest: ${payload.latestInteraction.id}`);
+    lines.push(`latest actionable: ${payload.latestInteraction.id}`);
     lines.push(`  kind: ${payload.latestInteraction.kind}`);
     lines.push(`  status: ${payload.latestInteraction.status}`);
     lines.push(`  source: ${payload.latestInteraction.source}`);
     lines.push(`  message: ${payload.latestInteraction.message}`);
   } else {
-    lines.push("latest: none");
+    lines.push("latest actionable: none");
+  }
+  if (payload.latestOverallInteraction) {
+    lines.push(`latest overall: ${payload.latestOverallInteraction.id}`);
+    lines.push(`  status: ${payload.latestOverallInteraction.status}`);
+    lines.push(`  source: ${payload.latestOverallInteraction.source}`);
+    lines.push(`  message: ${payload.latestOverallInteraction.message}`);
+  } else {
+    lines.push("latest overall: none");
   }
   lines.push("next:");
   for (const step of payload.next) {
@@ -261,6 +284,7 @@ function createOperatorSummarySignature(payload: OperatorSummary) {
     runtimeProbeError: payload.runtimeProbeError,
     actionableCount: payload.actionableCount,
     latestInteraction: payload.latestInteraction,
+    latestOverallInteraction: payload.latestOverallInteraction,
     next: payload.next,
   });
 }
@@ -276,7 +300,10 @@ function summarizeOperatorChange(previous: OperatorSummary | null, current: Oper
     return current.actionableCount > previous.actionableCount ? "new actionable interaction detected" : "actionable interaction resolved";
   }
   if (previous.latestInteraction?.id !== current.latestInteraction?.id) {
-    return current.latestInteraction ? `latest interaction changed to ${current.latestInteraction.id}` : "latest actionable interaction cleared";
+    return current.latestInteraction ? `latest actionable interaction changed to ${current.latestInteraction.id}` : "latest actionable interaction cleared";
+  }
+  if (previous.latestOverallInteraction?.id !== current.latestOverallInteraction?.id || previous.latestOverallInteraction?.status !== current.latestOverallInteraction?.status) {
+    return current.latestOverallInteraction ? `latest overall interaction is now ${current.latestOverallInteraction.id} (${current.latestOverallInteraction.status})` : "latest overall interaction cleared";
   }
   if (JSON.stringify(previous.next) !== JSON.stringify(current.next)) {
     return "recommended next step changed";

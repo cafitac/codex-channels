@@ -198,3 +198,5 @@ Watch mode also prints a compact `hint:` line with the current best next operato
 Watch/follow also support `--source`, `--kind`, and `--focus-id` so Codex-guided sessions can narrow monitoring to one request family.
 
 Current update guidance is best-effort and printed on stderr for human-facing commands so machine-readable stdout remains stable.
+
+The operator summary now distinguishes the latest actionable interaction from the latest overall interaction to make recent resolutions easier to explain.
