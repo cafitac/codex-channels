@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { InteractionRuntime } from "@cafitac/codex-channels-core";
 import { LocalMemoryBackend } from "@cafitac/codex-channels-backend-local";
 import {
+  CODEX_REQUEST_METHOD_TO_INTERACTION_KIND,
   CodexInteractionBridge,
   CodexJsonRpcLoop,
   HERMIT_CODEX_APP_SERVER_RESPONSE_MODE_ENV,
@@ -16,10 +17,31 @@ import {
   SpawnedHermitCodexAppServerLoop,
   buildHermitCodexAppServerWriterEnv,
   buildHermitCodexAppServerWriterStdio,
+  codexRequestMethodToInteractionKind,
+  isInteractiveCodexRequest,
   mapCodexRequestToInteraction,
   mapInteractionResponseToCodexResult,
   mapServerRequestResolved,
 } from "./index.js";
+
+test("recognizes the canonical set of interactive Codex request methods", () => {
+  for (const method of Object.keys(CODEX_REQUEST_METHOD_TO_INTERACTION_KIND)) {
+    assert.equal(isInteractiveCodexRequest(method), true);
+  }
+  assert.equal(isInteractiveCodexRequest("thread/start"), false);
+});
+
+test("maps every interactive Codex method to a stable interaction kind", () => {
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.keys(CODEX_REQUEST_METHOD_TO_INTERACTION_KIND).map((method) => [
+        method,
+        codexRequestMethodToInteractionKind(method as keyof typeof CODEX_REQUEST_METHOD_TO_INTERACTION_KIND),
+      ]),
+    ),
+    CODEX_REQUEST_METHOD_TO_INTERACTION_KIND,
+  );
+});
 
 test("maps Codex command approval requests into approval interactions", () => {
   const interaction = mapCodexRequestToInteraction({
@@ -36,6 +58,38 @@ test("maps Codex command approval requests into approval interactions", () => {
   assert.equal(interaction.kind, "approval_request");
   assert.equal(interaction.codex?.threadId, "thr_1");
   assert.match(interaction.payload.message, /cleanup/);
+});
+
+test("maps Codex file change approval requests into approval interactions", () => {
+  const interaction = mapCodexRequestToInteraction({
+    id: 62,
+    method: "item/fileChange/requestApproval",
+    params: {
+      threadId: "thr_file",
+      turnId: "turn_file",
+      reason: "apply patch",
+    },
+  });
+
+  assert.equal(interaction.kind, "approval_request");
+  assert.equal(interaction.codex?.threadId, "thr_file");
+  assert.equal(interaction.payload.message, "apply patch");
+});
+
+test("maps permissions approval requests into permissions interactions", () => {
+  const interaction = mapCodexRequestToInteraction({
+    id: 63,
+    method: "item/permissions/requestApproval",
+    params: {
+      threadId: "thr_perm",
+      turnId: "turn_perm",
+      reason: "Need elevated permissions",
+      permissions: { shell: { execute: true } },
+    },
+  });
+
+  assert.equal(interaction.kind, "permissions_request");
+  assert.equal(interaction.payload.message, "Need elevated permissions");
 });
 
 test("maps user input responses back into Codex tool response payloads", () => {
@@ -57,6 +111,60 @@ test("maps user input responses back into Codex tool response payloads", () => {
   });
 
   assert.deepEqual(result, { answers: { target: { answers: ["staging"] } } });
+});
+
+test("maps permissions interaction responses back into Codex permission payloads", () => {
+  const interaction = mapCodexRequestToInteraction({
+    id: "perm",
+    method: "item/permissions/requestApproval",
+    params: {
+      threadId: "thr_perm_2",
+      turnId: "turn_perm_2",
+      reason: "Need elevated permissions",
+      permissions: { shell: { execute: true } },
+    },
+  });
+
+  const result = mapInteractionResponseToCodexResult(interaction, {
+    interactionId: interaction.id,
+    action: "text",
+    values: ["acceptForSession"],
+    respondedAt: new Date().toISOString(),
+  });
+
+  assert.deepEqual(result, {
+    permissions: { shell: { execute: true } },
+    scope: "session",
+  });
+});
+
+test("maps elicitation interactions back into Codex elicitation payloads", () => {
+  const interaction = mapCodexRequestToInteraction({
+    id: "elicitation",
+    method: "mcpServer/elicitation/request",
+    params: {
+      threadId: "thr_elicitation",
+      turnId: "turn_elicitation",
+      message: "Need additional MCP input.",
+      mode: "form",
+    },
+  });
+
+  const accepted = mapInteractionResponseToCodexResult(interaction, {
+    interactionId: interaction.id,
+    action: "text",
+    values: ["staging"],
+    respondedAt: new Date().toISOString(),
+  });
+  const cancelled = mapInteractionResponseToCodexResult(interaction, {
+    interactionId: interaction.id,
+    action: "cancel",
+    values: [],
+    respondedAt: new Date().toISOString(),
+  });
+
+  assert.deepEqual(accepted, { action: "accept", content: { answer: "staging" } });
+  assert.deepEqual(cancelled, { action: "cancel" });
 });
 
 test("maps server/requestResolved notifications into a compact resolved shape", () => {

@@ -1070,6 +1070,63 @@ test("submit publishes one interaction and returns the resolved response", async
   }
 });
 
+test("submit can read the interaction payload from stdin when --interaction-file=- is used", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "codex-channels-submit-stdin-"));
+  const stateFile = join(dir, "state.json");
+  const port = await getFreePort();
+  const interaction = {
+    id: "submit-stdin-1",
+    kind: "user_input_request",
+    source: { type: "system", name: "stdin-test" },
+    payload: { message: "Which env?" },
+    createdAt: new Date().toISOString(),
+    status: "pending",
+  };
+
+  const child = spawn(process.execPath, [cliEntry, "submit", "--port", String(port), "--state-file", stateFile, "--interaction-file", "-"], {
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  assert.ok(child.stdin);
+
+  let stdout = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  child.stdin.write(JSON.stringify(interaction));
+  child.stdin.end();
+
+  try {
+    await waitFor(async () => {
+      const interactionsResponse = await fetch(`http://127.0.0.1:${port}/interactions`);
+      const interactionsJson = await interactionsResponse.json() as { interactions: Array<{ id: string }> };
+      return interactionsJson.interactions.some((item) => item.id === "submit-stdin-1");
+    }, 2000, () => "stdin submit interaction never appeared");
+
+    const respondResponse = await fetch(`http://127.0.0.1:${port}/interactions/submit-stdin-1/respond`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "text", values: ["staging"] }),
+    });
+    assert.equal(respondResponse.ok, true);
+
+    await waitFor(() => stdout.includes('"ok":true'), 2000, () => `submit stdin response timeout: ${stdout}`);
+    const payload = JSON.parse(stdout.trim());
+    assert.deepEqual(payload, {
+      ok: true,
+      response: {
+        interactionId: "submit-stdin-1",
+        action: "text",
+        values: ["staging"],
+        respondedAt: payload.response.respondedAt,
+      },
+    });
+  } finally {
+    child.kill();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("submit reuses an already running runtime instead of rebinding the port", async () => {
   const dir = await mkdtemp(join(tmpdir(), "codex-channels-submit-reuse-"));
   const stateFile = join(dir, "state.json");

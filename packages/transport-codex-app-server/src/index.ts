@@ -47,18 +47,48 @@ function maybeArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 }
 
-export function isInteractiveCodexRequest(method: string): boolean {
-  return [
-    "item/commandExecution/requestApproval",
-    "item/fileChange/requestApproval",
-    "item/permissions/requestApproval",
-    "item/tool/requestUserInput",
-    "mcpServer/elicitation/request",
-  ].includes(method);
+export const INTERACTIVE_CODEX_REQUEST_METHODS = [
+  "item/commandExecution/requestApproval",
+  "item/fileChange/requestApproval",
+  "item/permissions/requestApproval",
+  "item/tool/requestUserInput",
+  "mcpServer/elicitation/request",
+] as const;
+
+export type InteractiveCodexRequestMethod = (typeof INTERACTIVE_CODEX_REQUEST_METHODS)[number];
+
+export const CODEX_APPROVAL_REQUEST_METHODS = [
+  "item/commandExecution/requestApproval",
+  "item/fileChange/requestApproval",
+] as const;
+
+export type CodexApprovalRequestMethod = (typeof CODEX_APPROVAL_REQUEST_METHODS)[number];
+
+export const CODEX_REQUEST_METHOD_TO_INTERACTION_KIND = {
+  "item/commandExecution/requestApproval": "approval_request",
+  "item/fileChange/requestApproval": "approval_request",
+  "item/permissions/requestApproval": "permissions_request",
+  "item/tool/requestUserInput": "user_input_request",
+  "mcpServer/elicitation/request": "elicitation_request",
+} as const satisfies Record<InteractiveCodexRequestMethod, Interaction["kind"]>;
+
+export function isInteractiveCodexRequest(method: string): method is InteractiveCodexRequestMethod {
+  return INTERACTIVE_CODEX_REQUEST_METHODS.includes(method as InteractiveCodexRequestMethod);
+}
+
+export function isCodexApprovalRequestMethod(method: string): method is CodexApprovalRequestMethod {
+  return CODEX_APPROVAL_REQUEST_METHODS.includes(method as CodexApprovalRequestMethod);
+}
+
+export function codexRequestMethodToInteractionKind(method: InteractiveCodexRequestMethod): Interaction["kind"] {
+  return CODEX_REQUEST_METHOD_TO_INTERACTION_KIND[method];
 }
 
 export function mapCodexRequestToInteraction(message: CodexServerRequestMessage): Interaction {
   const { id, method, params } = message;
+  if (!isInteractiveCodexRequest(method)) {
+    throw new Error(`Unsupported Codex request method: ${method}`);
+  }
   const codex = {
     threadId: typeof params.threadId === "string" ? params.threadId : undefined,
     turnId: typeof params.turnId === "string" || params.turnId === null ? (params.turnId as string | null | undefined) : undefined,
@@ -71,7 +101,7 @@ export function mapCodexRequestToInteraction(message: CodexServerRequestMessage)
     const reason = asString(params.reason);
     return createInteraction({
       id: `codex-${String(id)}`,
-      kind: "approval_request",
+      kind: codexRequestMethodToInteractionKind(method),
       source: { type: "codex_app_server", name: "codex-app-server" },
       codex,
       payload: {
@@ -86,7 +116,7 @@ export function mapCodexRequestToInteraction(message: CodexServerRequestMessage)
   if (method === "item/fileChange/requestApproval") {
     return createInteraction({
       id: `codex-${String(id)}`,
-      kind: "approval_request",
+      kind: codexRequestMethodToInteractionKind(method),
       source: { type: "codex_app_server", name: "codex-app-server" },
       codex,
       payload: {
@@ -101,7 +131,7 @@ export function mapCodexRequestToInteraction(message: CodexServerRequestMessage)
   if (method === "item/permissions/requestApproval") {
     return createInteraction({
       id: `codex-${String(id)}`,
-      kind: "permissions_request",
+      kind: codexRequestMethodToInteractionKind(method),
       source: { type: "codex_app_server", name: "codex-app-server" },
       codex,
       payload: {
@@ -125,7 +155,7 @@ export function mapCodexRequestToInteraction(message: CodexServerRequestMessage)
     }).join("\n");
     return createInteraction({
       id: `codex-${String(id)}`,
-      kind: "user_input_request",
+      kind: codexRequestMethodToInteractionKind(method),
       source: { type: "codex_app_server", name: "codex-app-server" },
       codex,
       payload: {
@@ -141,7 +171,7 @@ export function mapCodexRequestToInteraction(message: CodexServerRequestMessage)
     const messageText = asString(params.message, "Codex requested MCP input.");
     return createInteraction({
       id: `codex-${String(id)}`,
-      kind: "elicitation_request",
+      kind: codexRequestMethodToInteractionKind(method),
       source: { type: "codex_app_server", name: asString(params.serverName, "codex-app-server") },
       codex,
       payload: {
@@ -160,7 +190,7 @@ export function mapInteractionResponseToCodexResult(interaction: Interaction, re
   const method = interaction.codex?.method;
   const firstValue = response.values?.[0] ?? "";
 
-  if (method === "item/commandExecution/requestApproval" || method === "item/fileChange/requestApproval") {
+  if (method && isCodexApprovalRequestMethod(method)) {
     if (response.action === "cancel") return { decision: "cancel" };
     if (response.action === "decline") return { decision: "decline" };
     if (firstValue === "acceptForSession") return { decision: "acceptForSession" };
